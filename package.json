@@ -18,7 +18,6 @@
     "@electron-forge/plugin-auto-unpack-natives": "^7.8.0",
     "@electron-forge/plugin-fuses": "^7.8.0",
     "@electron/fuses": "^1.8.0",
-    "@types/bun": "latest",
     "electron": "^36.1.0",
     "typescript": "^5.8.3"
   },
@@ -26,6 +25,7 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "electron-squirrel-startup": "^1.0.1"
+    "electron-squirrel-startup": "^1.0.1",
+    "tree-kill": "^1.2.2"
   }
 }
