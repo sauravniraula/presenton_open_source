@@ -27,14 +27,6 @@ import {
 } from "@/store/slices/presentationGeneration";
 import { OverlayLoader } from "@/components/ui/overlay-loader";
 import Wrapper from "@/components/Wrapper";
-import { getSubscription } from "@/utils/supabase/queries";
-import { supabase } from "@/utils/supabase/client";
-import { sendMpEvent } from "@/utils/mixpanel/services";
-import {
-  LimitType,
-  MixpanelEventName,
-  ToastType,
-} from "@/utils/mixpanel/enums";
 
 const CreatePage = () => {
   const dispatch = useDispatch();
@@ -66,13 +58,6 @@ const CreatePage = () => {
     }
   }, [titles]);
 
-  useEffect(() => {
-    //? Mixpanel User Tracking
-    sendMpEvent(MixpanelEventName.pageOpened, {
-      page_name: "Create Page",
-    });
-  }, []);
-
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -95,24 +80,12 @@ const CreatePage = () => {
       // Reorder the array
       const reorderedArray = arrayMove(titles, oldIndex, newIndex);
 
-      //? Mixpanel User Tracking
-      sendMpEvent(MixpanelEventName.reorderingTitles, {
-        presentation_id: presentation_id!,
-        old_index: oldIndex,
-        new_index: newIndex,
-        old_title: titles[oldIndex],
-        new_title: titles[newIndex],
-      });
-
       // Update the store with new order
       dispatch(setTitles(reorderedArray));
     }
   };
 
   const handleSubmit = async () => {
-    const subscription = await getSubscription(supabase);
-    // Add new charts if the user has added a new chart
-
     // Generate data
     setLoadingState({
       message: "Generating data...",
@@ -131,22 +104,14 @@ const CreatePage = () => {
       if (Object.keys(imagesUploaded).length > 0) {
         sources.push(Object.keys(imagesUploaded));
       }
-      //? Mixpanel User Tracking
-      sendMpEvent(MixpanelEventName.submittingPresentationGenerationData, {
-        presentation_id: presentation_id!,
-        theme_name: currentTheme.toLocaleLowerCase(),
-        watermark: subscription?.tier === "free" ? true : false,
-        images: images,
-        titles: titles,
-        sources: sources.flat(),
-      });
+
       const response = await PresentationGenerationApi.generateData({
         presentation_id: presentation_id,
         theme: {
           name: currentTheme.toLocaleLowerCase(),
           colors: currentColors,
         },
-        watermark: subscription?.tier === "free" ? true : false,
+        watermark: false,
         images: images,
         titles: titles,
         sources: sources.flat(),
@@ -154,10 +119,7 @@ const CreatePage = () => {
 
       if (response) {
         dispatch(setPresentationData(response));
-        //? Mixpanel User Tracking
-        sendMpEvent(MixpanelEventName.navigation, {
-          to: `/presentation/${presentation_id}?session=${response.session}`,
-        });
+
         router.push(
           `/presentation/${presentation_id}?session=${response.session}`
         );
@@ -168,13 +130,6 @@ const CreatePage = () => {
         title: "Error Adding Charts",
         description: "Something went wrong, Try again",
         variant: "destructive",
-      });
-      //? Mixpanel User Tracking
-      sendMpEvent(MixpanelEventName.error, {
-        error_message:
-          error instanceof Error
-            ? error.message
-            : "Unknown error in data generation",
       });
     } finally {
       setLoadingState({
@@ -188,11 +143,6 @@ const CreatePage = () => {
 
   const handleAddSlide = () => {
     if (!titles) {
-      //? Mixpanel User Tracking
-      sendMpEvent(MixpanelEventName.toastShown, {
-        toast_type: ToastType.error,
-        toast_message: "Cannot add slide at this time",
-      });
       toast({
         title: "Error",
         description: "Cannot add slide at this time",
@@ -202,11 +152,6 @@ const CreatePage = () => {
     }
 
     if (titles.length >= initialSlideCount) {
-      //? Mixpanel User Tracking
-      sendMpEvent(MixpanelEventName.limitReached, {
-        limit_type: LimitType.slide_count,
-        limit_name: "Slide count limit reached",
-      });
       toast({
         title: "Cannot add more slides",
         description:

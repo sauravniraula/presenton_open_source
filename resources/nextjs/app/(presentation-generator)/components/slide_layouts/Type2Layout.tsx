@@ -40,7 +40,7 @@ const Type2Layout = ({
   const { currentColors, currentTheme } = useSelector(
     (state: RootState) => state.theme
   );
-  const { isAuthorized, handleAddItem, handleDeleteItem, handleVariantChange } =
+  const { handleAddItem, handleDeleteItem, handleVariantChange } =
     useSlideOperations(slideIndex);
 
   const onAddItem = () => {
@@ -58,11 +58,9 @@ const Type2Layout = ({
   const VariantMenu = () => (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        {isAuthorized && (
-          <button className="absolute top-0 -left-7 hidden md:block  p-1 rounded-md bg-white shadow-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-50 z-50">
-            <MoreVertical className="w-4 h-4 text-black" />
-          </button>
-        )}
+        <button className="absolute top-0 -left-7 hidden md:block  p-1 rounded-md bg-white shadow-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-50 z-50">
+          <MoreVertical className="w-4 h-4 text-black" />
+        </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-[180px] p-2">
         <DropdownMenuItem

@@ -9,8 +9,6 @@ import {
 } from "@/store/slices/presentationGeneration";
 import { renderChart } from "../slide_config";
 import { RootState } from "@/store/store";
-import { toast } from "@/hooks/use-toast";
-import { useAuthCheck } from "../../hooks/use-auth-check";
 
 interface AllChartProps {
   chartData: StoreChartData;
@@ -26,7 +24,7 @@ const AllChart = ({
     useState<StoreChartData>(initialChartData);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const { currentColors } = useSelector((state: RootState) => state.theme);
-  const { isAuthorized } = useAuthCheck();
+
   // Use chart settings from the Redux store
   const chartSettings = useSelector((state: RootState) => {
     const slide =
@@ -57,9 +55,7 @@ const AllChart = ({
   }, [initialChartData]);
 
   const handleChartClick = () => {
-    if (isAuthorized) {
-      setIsEditorOpen(true);
-    }
+    setIsEditorOpen(true);
   };
 
   const onChartDataChange = (newData: StoreChartData) => {

@@ -15,7 +15,6 @@ import {
   PopoverTrigger,
 } from "@radix-ui/react-popover";
 import { RootState } from "@/store/store";
-import { useAuthCheck } from "../../hooks/use-auth-check";
 import SlideFooter from "./SlideFooter";
 
 type Type10LayoutProps = {
@@ -51,10 +50,8 @@ const Type10Layout = ({
 }: Type10LayoutProps) => {
   const { currentColors } = useSelector((state: RootState) => state.theme);
   const dispatch = useDispatch();
-  const { isAuthorized } = useAuthCheck();
 
   const handleDeleteItem = (index: number) => {
-    if (!isAuthorized) return;
     dispatch(
       deleteInfographics({
         slideIndex: slideIndex,
@@ -63,7 +60,6 @@ const Type10Layout = ({
     );
   };
   const handleAddItem = () => {
-    if (!isAuthorized) return;
     dispatch(
       addInfographics({
         slideIndex: slideIndex,

@@ -1,12 +1,8 @@
-import React, { useState } from "react";
+import React from "react";
 import EditableText from "../EditableText";
 import { Plus } from "lucide-react";
 import ElementMenu from "../ElementMenu";
-import { useDispatch, useSelector } from "react-redux";
-import {
-  addSlideBodyItem,
-  deleteSlideBodyItem,
-} from "@/store/slices/presentationGeneration";
+import { useSelector } from "react-redux";
 import { numberTranslations } from "../../utils/others";
 import { RootState } from "@/store/store";
 import AllChart from "./AllChart";
@@ -33,10 +29,8 @@ const Type9Layout = ({
   slideIndex,
   language,
 }: Type9LayoutProps) => {
-  const dispatch = useDispatch();
   const { currentColors } = useSelector((state: RootState) => state.theme);
-  const { isAuthorized, handleAddItem, handleDeleteItem } =
-    useSlideOperations(slideIndex);
+  const { handleAddItem, handleDeleteItem } = useSlideOperations(slideIndex);
   const AddItem = () => {
     if (body.length < 3) {
       handleAddItem({ item: { heading: "", description: "" } });

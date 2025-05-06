@@ -581,31 +581,6 @@ export const renderSlideContent = (slide: Slide, language: string) => {
         />
       );
 
-    // case 11:
-    //     switch ( slide.content.infographics[0].chart.chart_type) {
-    //         case 'text':
-    //             return (
-    //                 <Type11Layout
-    //                     description={slide.content.description || ''}
-    //                     slideIndex={slide.index}
-    //                     slideId={slide.id || ''}
-    //                     title={slide.content.title}
-    //                     infographics={slide.content.infographics}
-    //                 />
-    //             )
-
-    //         default:
-    //             return (
-    //                 <Type10Layout
-    //                     design_index={slide.design_index || 1}
-    //                     description={slide.content.description || ''}
-    //                     slideIndex={slide.index}
-    //                     slideId={slide.id || ''}
-    //                     title={slide.content.title}
-    //                     infographics={slide.content.infographics}
-    //                 />
-    //             )
-    //     }
     default:
       return null;
   }
@@ -712,29 +687,6 @@ export const renderMiniSlideContent = (slide: Slide) => {
           slideIndex={slide.index}
         />
       );
-
-    // case 11:
-    //     switch (slide.content.infographics[0].chart.chart_type) {
-    //         case 'text':
-    //             return (
-    //                 <Type11Mini
-    //                     title={slide.content.title}
-
-    //                     description={slide.content.description || ''}
-    //                     infographics={slide.content.infographics}
-    //                 />
-    //             )
-    //         default:
-    //             return (
-    //                 <Type10Mini
-    //                     design_index={slide.design_index || 1}
-    //                     slideIndex={slide.index}
-    //                     description={slide.content.description || ''}
-    //                     title={slide.content.title}
-    //                     infographics={slide.content.infographics}
-    //                 />
-    //             )
-    //     }
     default:
       return null;
   }

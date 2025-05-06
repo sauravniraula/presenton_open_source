@@ -16,26 +16,22 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import React, { useEffect, useRef, useState } from "react";
-import { useAuthCheck } from "../../hooks/use-auth-check";
+import React, { useRef, useState } from "react";
+
 import { Camera, Loader2, Plus } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store/store";
 import { isDarkColor } from "../../utils/others";
 import { useFooter } from "../../context/footerContext";
-import WaterMark from "./WaterMark";
 
 const SlideFooter: React.FC = () => {
-  const { isAuthorized } = useAuthCheck();
   const [showEditor, setShowEditor] = useState<boolean>(false);
   const [isUploading, setIsUploading] = useState({
     white: false,
     dark: false,
   });
   const { currentColors } = useSelector((state: RootState) => state.theme);
-  const { user } = useSelector((state: RootState) => state.auth);
-
   const isDark = isDarkColor(currentColors.slideBg);
 
   const whiteLogoRef = useRef<HTMLInputElement | null>(null);
@@ -68,12 +64,10 @@ const SlideFooter: React.FC = () => {
   };
 
   const handleSave = () => {
-    if (user?.id) {
-      saveFooterProperties(footerProperties);
-      toast({
-        title: "Footer properties saved successfully",
-      });
-    }
+    saveFooterProperties(footerProperties);
+    toast({
+      title: "Footer properties saved successfully",
+    });
   };
 
   const handleReset = () => {
@@ -169,9 +163,8 @@ const SlideFooter: React.FC = () => {
   };
 
   const handleEditor = () => {
-    if (isAuthorized) {
-      setShowEditor(!showEditor);
-    }
+    setShowEditor(!showEditor);
+
     return;
   };
 
@@ -321,7 +314,7 @@ const SlideFooter: React.FC = () => {
                 </div>
               )
             ) : (
-              <WaterMark status={status} />
+              <div></div>
             ))}
         </div>
 
@@ -375,9 +368,7 @@ const SlideFooter: React.FC = () => {
               </div>
             )
           ) : (
-            <div className="w-full flex justify-end">
-              <WaterMark status={status} />
-            </div>
+            <div className="w-full flex justify-end"></div>
           )}
         </div>
       </div>

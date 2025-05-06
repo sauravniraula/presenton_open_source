@@ -8,8 +8,7 @@ import { useDispatch } from "react-redux";
 import { useRouter } from "next/navigation";
 import { ThemeType } from "../upload/type";
 import { Button } from "@/components/ui/button";
-import { sendMpEvent } from "@/utils/mixpanel/services";
-import { MixpanelEventName } from "@/utils/mixpanel/enums";
+
 import { toast } from "@/hooks/use-toast";
 
 interface ThemeCardProps {
@@ -117,10 +116,6 @@ const ThemePage = () => {
   const [selectedTheme, setSelectedTheme] = useState<ThemeType | null>(null);
   const handleThemeClick = async (theme: ThemeColors, type: string) => {
     setSelectedTheme(type as ThemeType);
-    //? Mixpanel User Tracking
-    sendMpEvent(MixpanelEventName.themeSelected, {
-      theme_name: type,
-    });
   };
   const handleSubmit = () => {
     if (!selectedTheme) {
@@ -131,18 +126,10 @@ const ThemePage = () => {
       return;
     }
     dispatch(setTheme(selectedTheme as ThemeType));
-    //? Mixpanel User Tracking
-    sendMpEvent(MixpanelEventName.navigation, {
-      to: "/create",
-    });
+
     router.push("/create");
   };
-  useEffect(() => {
-    //? Mixpanel User Tracking
-    sendMpEvent(MixpanelEventName.pageOpened, {
-      page_name: "Theme Page",
-    });
-  }, []);
+
   return (
     <div>
       <Header />

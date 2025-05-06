@@ -19,14 +19,11 @@ import { RootState } from "@/store/store";
 import { useDispatch, useSelector } from "react-redux";
 import { addSlide, updateSlide } from "@/store/slices/presentationGeneration";
 import NewSlide from "../../components/slide_layouts/NewSlide";
-import { useAuthCheck } from "../../hooks/use-auth-check";
-import { MixpanelEventName } from "@/utils/mixpanel/enums";
-import { sendMpEvent } from "@/utils/mixpanel/services";
-import FeedbackSlide from "../../components/slide_layouts/FeedbackSlide";
+
 interface SlideContentProps {
   slide: Slide;
   index: number;
-  userId: string;
+
   presentationId: string;
 
   onDeleteSlide: (index: number) => void;
@@ -35,7 +32,7 @@ interface SlideContentProps {
 const SlideContent = ({
   slide,
   index,
-  userId,
+
   presentationId,
   onDeleteSlide,
 }: SlideContentProps) => {
@@ -45,7 +42,6 @@ const SlideContent = ({
   const { presentationData, isStreaming } = useSelector(
     (state: RootState) => state.presentationGeneration
   );
-  const { isAuthorized } = useAuthCheck();
 
   const handleSubmit = async () => {
     const element = document.getElementById(
@@ -61,12 +57,7 @@ const SlideContent = ({
       return;
     }
     setIsUpdating(true);
-    //? Mixpanel User Tracking
-    sendMpEvent(MixpanelEventName.updating_presentation_using_prompt, {
-      presentation_id: presentationId,
-      slide_index: slide.index,
-      prompt: value,
-    });
+
     try {
       const response = await PresentationGenerationApi.editSlide(
         presentationId,
@@ -137,7 +128,7 @@ const SlideContent = ({
           {!showNewSlideSelection && (
             <div className="group-hover:opacity-100 hidden md:block opacity-0 transition-opacity my-4 duration-300">
               <ToolTip content="Add new slide below">
-                {!isStreaming && isAuthorized && (
+                {!isStreaming && (
                   <div
                     onClick={() => setShowNewSlideSelection(true)}
                     className="  bg-white shadow-md w-[80px] py-2 border hover:border-[#5141e5] duration-300  flex items-center justify-center rounded-lg cursor-pointer mx-auto"
@@ -154,7 +145,7 @@ const SlideContent = ({
               setShowNewSlideSelection={setShowNewSlideSelection}
             />
           )}
-          {!isStreaming && isAuthorized && (
+          {!isStreaming && (
             <ToolTip content="Delete slide">
               <div
                 onClick={() => onDeleteSlide(slide.index)}
@@ -164,7 +155,7 @@ const SlideContent = ({
               </div>
             </ToolTip>
           )}
-          {!isStreaming && isAuthorized && (
+          {!isStreaming && (
             <div className="absolute top-2 z-20 sm:top-4 hidden md:block left-2 sm:left-4 transition-transform">
               <Popover>
                 <PopoverTrigger>

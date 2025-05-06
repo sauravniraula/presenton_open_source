@@ -5,10 +5,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { LanguageType, PresentationConfig, ThemeType } from "../type";
-import { getSubscription } from "@/utils/supabase/queries";
-import { supabase } from "@/utils/supabase/client";
-import { useEffect, useState } from "react";
+import { LanguageType, PresentationConfig } from "../type";
+
+import { useState } from "react";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,21 +34,16 @@ export function ConfigurationSelects({
   config,
   onConfigChange,
 }: ConfigurationSelectsProps) {
-  const [slideOptions, setSlideOptions] = useState(["5", "8", "10"]);
+  const [slideOptions, setSlideOptions] = useState([
+    "5",
+    "8",
+    "10",
+    "12",
+    "15",
+    "18",
+    "20",
+  ]);
   const [openLanguage, setOpenLanguage] = useState(false);
-
-  useEffect(() => {
-    const fetchSubscription = async () => {
-      const subscription = await getSubscription(supabase);
-      if (subscription?.tier === "standard" || subscription?.tier === "esewa") {
-        setSlideOptions(["5", "8", "10", "12", "15", "18", "20"]);
-      } else if (subscription?.tier === "free") {
-        setSlideOptions(["5", "8", "10"]);
-      }
-    };
-
-    fetchSubscription();
-  }, []);
 
   return (
     <div className="flex  flex-wrap order-1 gap-4">

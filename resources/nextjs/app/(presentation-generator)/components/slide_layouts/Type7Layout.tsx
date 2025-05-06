@@ -29,8 +29,7 @@ const Type7Layout = ({
   icon_queries,
 }: Type2LayoutProps) => {
   const { currentColors } = useSelector((state: RootState) => state.theme);
-  const { isAuthorized, handleAddItem, handleDeleteItem } =
-    useSlideOperations(slideIndex);
+  const { handleAddItem, handleDeleteItem } = useSlideOperations(slideIndex);
 
   const AddItem = () => {
     if (body.length < 4) {

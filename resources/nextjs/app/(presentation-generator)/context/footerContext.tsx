@@ -1,6 +1,4 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { UserPreferencesService } from "../services/userPreferences";
-import { supabase } from "@/utils/supabase/client";
 
 interface FooterProperties {
   logoProperties: {
@@ -64,53 +62,32 @@ export const FooterProvider: React.FC<{
     },
   });
 
-  useEffect(() => {
-    if (!userId) return;
-    const statusOperation = async () => {
-      const { data, error } = await supabase
-        .from("subscriptions")
-        .select("*")
-        .eq("user_id", userId)
-        .in("status", ["trialing", "active"])
-        .eq("cancel_at_period_end", [false])
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .single();
+  // useEffect(() => {
+  //   const getFooterProperties = async () => {
+  //     if (userId) {
+  //       const [footerData, statusData] = await Promise.all([
+  //         UserPreferencesService.getFooterProperties(userId),
+  //         UserPreferencesService.getStatus(userId),
+  //       ]);
 
-      if (data) {
-        await UserPreferencesService.setStatus(data.user_id, data.tier);
-        setStatus(data.tier);
-      }
-    };
-    statusOperation();
-  }, [userId]);
-
-  useEffect(() => {
-    const getFooterProperties = async () => {
-      if (userId) {
-        const [footerData, statusData] = await Promise.all([
-          UserPreferencesService.getFooterProperties(userId),
-          UserPreferencesService.getStatus(userId),
-        ]);
-
-        if (footerData) {
-          setFooterProperties(footerData);
-        }
-        if (statusData) {
-          if (!status) {
-            setStatus(statusData);
-          }
-        }
-      }
-    };
-    getFooterProperties();
-  }, [userId]);
+  //       if (footerData) {
+  //         setFooterProperties(footerData);
+  //       }
+  //       if (statusData) {
+  //         if (!status) {
+  //           setStatus(statusData);
+  //         }
+  //       }
+  //     }
+  //   };
+  //   getFooterProperties();
+  // }, [userId]);
 
   const saveFooterProperties = async (props: FooterProperties) => {
-    if (userId) {
-      await UserPreferencesService.saveFooterProperties(userId, props);
-      setFooterProperties(props);
-    }
+    // if (userId) {
+    //   await UserPreferencesService.saveFooterProperties(userId, props);
+    //   setFooterProperties(props);
+    // }
   };
 
   return (

@@ -1,7 +1,6 @@
 import React from "react";
 import Link from "next/link";
 import Wrapper from "@/components/Wrapper";
-import Newsletter from "./NewLetter";
 
 interface FooterLink {
   label: string;
@@ -71,7 +70,6 @@ const Footer = () => {
               your AI buddy craft beautiful, ready-to-share presentations for
               work, study, or business — in minutes.
             </p>
-            <Newsletter />
           </div>
 
           {/* Links Sections */}

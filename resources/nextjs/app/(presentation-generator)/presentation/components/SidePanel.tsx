@@ -44,7 +44,6 @@ const SidePanel = ({
   const [isOpen, setIsOpen] = useState(true);
   const [active, setActive] = useState<"list" | "grid">("grid");
 
-  const { user } = useSelector((state: RootState) => state.auth);
   const { presentationData, isStreaming } = useSelector(
     (state: RootState) => state.presentationGeneration
   );
@@ -141,12 +140,11 @@ const SidePanel = ({
       });
 
     const file = dataUrlToFile(image, "thumbnail.png");
-    if (user?.id) {
-      const response = await DashboardApi.setSlideThumbnail(
-        presentationData?.presentation?.id!,
-        file
-      );
-    }
+
+    const response = await DashboardApi.setSlideThumbnail(
+      presentationData?.presentation?.id!,
+      file
+    );
   };
 
   // Loading shimmer component

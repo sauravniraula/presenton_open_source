@@ -46,7 +46,6 @@ const TipTapEditor = ({
   slideIndex,
   elementId,
   type,
-  isEditable,
 }: {
   content: string;
   isAlingCenter: boolean;
@@ -54,7 +53,6 @@ const TipTapEditor = ({
   slideIndex: number;
   elementId: string;
   type: string;
-  isEditable: boolean;
 }) => {
   const dispatch = useDispatch();
   const { currentColors } = useSelector((state: RootState) => state.theme);
@@ -158,7 +156,7 @@ const TipTapEditor = ({
   };
   const editor = useEditor({
     extensions: [StarterKit, Markdown, Underline],
-    editable: isEditable,
+
     content: content,
     editorProps: {
       attributes: {

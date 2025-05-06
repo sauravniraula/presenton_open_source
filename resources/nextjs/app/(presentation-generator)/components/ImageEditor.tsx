@@ -30,9 +30,7 @@ import {
   updateSlideProperties,
 } from "@/store/slices/presentationGeneration";
 import { ThemeImagePrompt } from "../utils/others";
-import { sendMpEvent } from "@/utils/mixpanel/services";
-import { MixpanelEventName, SearchTypeEnum } from "@/utils/mixpanel/enums";
-import { useAuthCheck } from "../hooks/use-auth-check";
+
 import {
   Popover,
   PopoverContent,
@@ -62,9 +60,9 @@ const ImageEditor = ({
   properties,
 }: ImageEditorProps) => {
   const dispatch = useDispatch();
-  const { user } = useSelector((state: RootState) => state.auth);
+
   const { currentTheme } = useSelector((state: RootState) => state.theme);
-  const { isAuthorized } = useAuthCheck();
+
   const path = usePathname();
   const [image, setImage] = useState(initialImage);
   const [previewImages, setPreviewImages] = useState([initialImage]);
@@ -130,7 +128,7 @@ const ImageEditor = ({
   }, [isFocusPointMode, focusPoint]);
 
   const handleImageClick = () => {
-    if (isAuthorized && !isFocusPointMode) {
+    if (!isFocusPointMode) {
       setIsToolbarOpen(true);
     }
   };
@@ -218,16 +216,8 @@ const ImageEditor = ({
 
       const presentation_id = path.split("/")[2];
 
-      sendMpEvent(MixpanelEventName.generatingImageForSlide, {
-        presentation_id,
-        slide_index: slideIndex,
-        prompt: prompt,
-        theme_prompt: ThemeImagePrompt[currentTheme],
-        aspect_ratio: "4:5",
-      });
-
       const response = await PresentationGenerationApi.generateImage({
-        user_id: user?.id!,
+        user_id: "user?.id!",
         presentation_id,
         prompt: {
           theme_prompt: ThemeImagePrompt[currentTheme],
@@ -238,9 +228,6 @@ const ImageEditor = ({
 
       setPreviewImages(response.urls);
     } catch (err) {
-      sendMpEvent(MixpanelEventName.error, {
-        error_message: "Failed to generate image",
-      });
       setError("Failed to generate image. Please try again.");
     } finally {
       setIsGenerating(false);
@@ -249,19 +236,13 @@ const ImageEditor = ({
 
   const handleSearchImage = async () => {
     const presentation_id = path.split("/")[2];
-    sendMpEvent(MixpanelEventName.search, {
-      query: searchQuery,
-      search_type: SearchTypeEnum.image,
-      presentation_id,
-      page: 1,
-      limit: 20,
-    });
+
     try {
       setIsSearching(true);
       setError(null);
 
       const response = await PresentationGenerationApi.imageSearch({
-        user_id: user?.id!,
+        user_id: "user?.id!",
         presentation_id: presentation_id,
         query: searchQuery,
         page: 1,
@@ -270,9 +251,6 @@ const ImageEditor = ({
 
       setSearchedImages(response.urls);
     } catch (err) {
-      sendMpEvent(MixpanelEventName.error, {
-        error_message: "Error fetching images",
-      });
       setError("Failed to fetch images. Please try again.");
     } finally {
       setIsSearching(false);
@@ -286,20 +264,10 @@ const ImageEditor = ({
     const file = event.target.files?.[0];
     if (!file) return;
 
-    sendMpEvent(MixpanelEventName.uploadingImageForSlide, {
-      presentation_id: presentation_id,
-      slide_index: slideIndex,
-      file_name: file.name,
-      file_size: file.size,
-      file_type: file.type,
-    });
-
     // Check file size (e.g., 5MB limit)
     if (file.size > 5 * 1024 * 1024) {
       const error_message = "File size should be less than 5MB";
-      sendMpEvent(MixpanelEventName.error, {
-        error_message,
-      });
+
       setUploadError(error_message);
       return;
     }
@@ -307,9 +275,7 @@ const ImageEditor = ({
     // Check file type
     if (!file.type.startsWith("image/")) {
       const error_message = "Please upload an image file";
-      sendMpEvent(MixpanelEventName.error, {
-        error_message,
-      });
+
       setUploadError(error_message);
       return;
     }
@@ -333,9 +299,7 @@ const ImageEditor = ({
       setUploadedImageUrl(data.url);
     } catch (err) {
       const error_message = "Failed to upload image. Please try again.";
-      sendMpEvent(MixpanelEventName.error, {
-        error_message,
-      });
+
       setUploadError(error_message);
     } finally {
       setIsUploading(false);
