@@ -1,16 +1,17 @@
 import { app, BrowserWindow } from 'electron'
-import { spawn, exec, ChildProcessWithoutNullStreams } from 'child_process'
+import { spawn, exec, ChildProcessByStdio } from 'child_process'
 import path from 'path'
 import util from 'util'
+import { killProcess } from './utils'
 
 const execAsync = util.promisify(exec)
 
-var win: BrowserWindow | undefined
-var fastApiProcess: ChildProcessWithoutNullStreams | undefined
-var nextjsProcess: ChildProcessWithoutNullStreams | undefined
-
 var isDev = process.env.NODE_ENV === 'development'
 var resourcesDir = (isDev ? process.cwd() : process.resourcesPath) + '/resources'
+
+var win: BrowserWindow | undefined
+var fastApiProcess: ChildProcessByStdio<any, any, any> | undefined
+var nextjsProcess: ChildProcessByStdio<any, any, any> | undefined
 
 const createWindow = () => {
   win = new BrowserWindow({
@@ -25,11 +26,12 @@ async function startServers() {
     // Start FastAPI server
     fastApiProcess = spawn('env/bin/python', ['server.py'], {
       cwd: path.join(resourcesDir, 'fastapi'),
+      stdio: ["inherit", "pipe", "pipe"],
     });
-    fastApiProcess.stdout.on('data', (data) => {
+    fastApiProcess.stdout.on('data', (data: any) => {
       console.log(`FastAPI: ${data}`);
     });
-    fastApiProcess.stderr.on('data', (data) => {
+    fastApiProcess.stderr.on('data', (data: any) => {
       console.error(`FastAPI Error: ${data}`);
     });
     // Wait for FastAPI server to start
@@ -39,10 +41,10 @@ async function startServers() {
     nextjsProcess = spawn("npm", ["start"], {
       cwd: path.join(resourcesDir, 'nextjs'),
     })
-    nextjsProcess.stdout.on('data', (data) => {
+    nextjsProcess.stdout.on('data', (data: any) => {
       console.log(`NextJS: ${data}`);
     });
-    nextjsProcess.stderr.on('data', (data) => {
+    nextjsProcess.stderr.on('data', (data: any) => {
       console.error(`NextJS Error: ${data}`);
     });
     // Wait for NextJS server to start
@@ -53,35 +55,29 @@ async function startServers() {
   }
 }
 
-function stopServers() {
+async function stopServers() {
   console.log("Stopping servers...")
-  fastApiProcess?.kill("SIGKILL")
-  nextjsProcess?.kill("SIGKILL")
+  if (fastApiProcess?.pid) {
+    await killProcess(fastApiProcess.pid)
+  }
+  if (nextjsProcess?.pid) {
+    await killProcess(nextjsProcess.pid)
+  }
 }
 
 app.whenReady().then(async () => {
   console.log("When ready...")
   createWindow()
-  await startServers()
+  win?.loadFile(path.join(resourcesDir, 'ui', 'homepage', 'index.html'))
+
+  // await startServers()
 
   console.log("Loading URL...")
-  win?.loadURL('http://0.0.0.0:48389')
+  // win?.loadURL('http://0.0.0.0:48389')
 })
 
-app.on('window-all-closed', () => {
+app.on('window-all-closed', async () => {
   console.log("Window all closed")
-  stopServers()
-  app.quit()
-})
-
-process.on('SIGINT', () => {
-  console.log("SIGINT received")
-  stopServers()
-  app.quit()
-})
-
-process.on('SIGTERM', () => {
-  console.log("SIGTERM received")
-  stopServers()
+  await stopServers()
   app.quit()
 })
