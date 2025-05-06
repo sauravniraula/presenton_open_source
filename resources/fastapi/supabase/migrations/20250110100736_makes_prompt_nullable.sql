@@ -1,0 +1,1 @@
+ALTER TABLE "public"."v3-presentations" ALTER COLUMN "prompt" DROP NOT NULL;

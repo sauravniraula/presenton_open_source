@@ -1,0 +1,558 @@
+"use client";
+import React, { useEffect, useState, useCallback, useRef } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useRouter, useSearchParams } from "next/navigation";
+import { RootState } from "@/store/store";
+import { Skeleton } from "@/components/ui/skeleton";
+import PresentationMode from "../../components/PresentationMode";
+import { getUser } from "@/utils/supabase/queries";
+import { supabase } from "@/utils/supabase/client";
+import { DashboardApi } from "@/app/dashboard/api/dashboard";
+import SidePanel from "../components/SidePanel";
+import { Slide } from "../../types/slide";
+import SlideContent from "../components/SlideContent";
+import { getEmptySlideContent } from "../../components/slide_config";
+import {
+  addSlide,
+  deletePresentationSlide,
+  PresentationData,
+  setPresentationData,
+  setStreaming,
+} from "@/store/slices/presentationGeneration";
+import { toast } from "@/hooks/use-toast";
+import { PresentationGenerationApi } from "../../services/api/presentation-generation";
+import { setThemeColors, ThemeColors } from "../../store/themeSlice";
+import { ThemeType } from "../../upload/type";
+import LoadingState from "../../components/LoadingState";
+import Header from "../components/Header";
+import { CircleHelp, Loader2 } from "lucide-react";
+import { MixpanelEventName } from "@/utils/mixpanel/enums";
+import { sendMpEvent } from "@/utils/mixpanel/services";
+import { jsonrepair } from "jsonrepair";
+import { Button } from "@/components/ui/button";
+import { AlertCircle } from "lucide-react";
+import { getHeader } from "../../services/api/header";
+import FeedbackSlide from "../../components/slide_layouts/FeedbackSlide";
+import { FooterProvider } from "../../context/footerContext";
+import Help from "./Help";
+
+// Custom debounce function
+function useDebounce<T extends (...args: any[]) => void>(
+  callback: T,
+  delay: number
+) {
+  const timeoutRef = useRef<NodeJS.Timeout>();
+
+  return useCallback(
+    (...args: Parameters<T>) => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+
+      timeoutRef.current = setTimeout(() => {
+        callback(...args);
+      }, delay);
+    },
+    [callback, delay]
+  );
+}
+
+const PresentationPage = ({ presentation_id }: { presentation_id: string }) => {
+  const dispatch = useDispatch();
+  const [loading, setLoading] = useState(true);
+  const [selectedSlide, setSelectedSlide] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const { currentTheme, currentColors } = useSelector(
+    (state: RootState) => state.theme
+  );
+
+  const { user } = useSelector((state: RootState) => state.auth);
+  const { presentationData, isStreaming } = useSelector(
+    (state: RootState) => state.presentationGeneration
+  );
+  const [error, setError] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(true);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const isPresentMode = searchParams.get("mode") === "present";
+  const session = searchParams.get("session");
+  const currentSlide = parseInt(
+    searchParams.get("slide") || `${selectedSlide}` || "0"
+  );
+  const [isMobilePanelOpen, setIsMobilePanelOpen] = useState(false);
+  const [autoSaveLoading, setAutoSaveLoading] = useState(false);
+
+  // Add ref for tracking initial load
+  const isInitialLoad = useRef(true);
+
+  // Ref to track the previous length of slides
+  const previousSlidesLength = useRef(0);
+
+  // Create auto-save function
+  const autoSave = useCallback(
+    (data: { user_id: string; presentation_id: string; slides: any[] }) => {
+      setAutoSaveLoading(true);
+      // Fire and forget - no await
+      PresentationGenerationApi.updatePresentationContent(data)
+        .then(() => {})
+        .catch((error) => {
+          console.error("Error AAYO", error);
+        })
+        .finally(() => {
+          setAutoSaveLoading(false);
+        });
+    },
+    [presentation_id, user?.id]
+  );
+
+  // Create debounced version of autoSave
+  const debouncedSave = useDebounce(autoSave, 2000);
+
+  // Watch for changes in presentationData and trigger auto-save
+  useEffect(() => {
+    if (
+      presentationData &&
+      !isInitialLoad.current &&
+      presentationData.slides &&
+      presentationData.slides.some(
+        (slide) => slide.images && slide.images.length > 0
+      )
+    ) {
+      debouncedSave({
+        user_id: user?.id!,
+        presentation_id: presentation_id,
+        slides: presentationData.slides,
+      });
+    }
+    if (isInitialLoad.current) {
+      isInitialLoad.current = false;
+    }
+  }, [presentationData, debouncedSave]);
+
+  // Function to fetch the slides
+  useEffect(() => {
+    //? Mixpanel User Tracking
+    sendMpEvent(MixpanelEventName.pageOpened, {
+      page_name: "Presentation Page",
+    });
+
+    let evtSource: EventSource;
+    let accumulatedChunks = "";
+
+    const fetchSlides = async () => {
+      const user = await getUser(supabase);
+      dispatch(setStreaming(true));
+
+      //? Mixpanel User Tracking
+      sendMpEvent(MixpanelEventName.listeningStream, {
+        presentation_id: presentation_id,
+        stream_detail: "Listening for slides generation",
+      });
+
+      evtSource = new EventSource(
+        `${PresentationGenerationApi.BASE_URL}/ppt/generate/stream?user_id=${user?.id}&presentation_id=${presentation_id}&session=${session}`
+      );
+
+      evtSource.onopen = () => {
+        setColorsVariables(currentColors, currentTheme);
+      };
+
+      evtSource.addEventListener("response", (event) => {
+        const data = JSON.parse(event.data);
+
+        if (data.type === "chunk") {
+          accumulatedChunks += data.chunk;
+
+          try {
+            const repairedJson = jsonrepair(accumulatedChunks);
+            const partialData = JSON.parse(repairedJson);
+            if (partialData.slides) {
+              // Check if the length of slides has changed
+              if (
+                partialData.slides.length !== previousSlidesLength.current &&
+                partialData.slides.length > 1
+              ) {
+                partialData.slides.splice(-1);
+                dispatch(
+                  setPresentationData({
+                    presentation: null,
+                    slides: partialData.slides,
+                  })
+                );
+                previousSlidesLength.current = partialData.slides.length + 1; // Update the previous length
+                setLoading(false);
+              }
+            }
+          } catch (error) {
+            // console.error('error while repairing json', error)
+            // It's okay if this fails, it just means the JSON isn't complete yet
+          }
+        } else if (data.type === "complete") {
+          try {
+            dispatch(setPresentationData(data.presentation));
+            dispatch(
+              setThemeColors({
+                ...data.presentation.presentation.theme.colors,
+                theme: data.presentation.presentation.theme.name as ThemeType,
+              })
+            );
+            setColorsVariables(
+              data.presentation.presentation.theme.colors,
+              data.presentation.presentation.theme.name as ThemeType
+            );
+            setLoading(false);
+            dispatch(setStreaming(false));
+            evtSource.close();
+            // Remove session parameter from URL
+            const newUrl = new URL(window.location.href);
+            newUrl.searchParams.delete("session");
+            window.history.replaceState({}, "", newUrl.toString());
+          } catch (error) {
+            evtSource.close();
+            console.error("Error parsing accumulated chunks:", error);
+          }
+          accumulatedChunks = "";
+        } else if (data.type === "closing") {
+          dispatch(setPresentationData(data.presentation));
+          dispatch(
+            setThemeColors({
+              ...data.presentation.presentation.theme.colors,
+              theme: data.presentation.presentation.theme.name as ThemeType,
+            })
+          );
+          setColorsVariables(
+            data.presentation.presentation.theme.colors,
+            data.presentation.presentation.theme.name as ThemeType
+          );
+          setLoading(false);
+          dispatch(setStreaming(false));
+          evtSource.close();
+          // Remove session parameter from URL
+          const newUrl = new URL(window.location.href);
+          newUrl.searchParams.delete("session");
+          window.history.replaceState({}, "", newUrl.toString());
+        }
+      });
+      evtSource.onerror = (error) => {
+        console.error("EventSource failed:", error);
+
+        setLoading(false);
+        dispatch(setStreaming(false));
+        setError(true);
+        evtSource.close();
+
+        //? Mixpanel User Tracking
+        sendMpEvent(MixpanelEventName.error, {
+          error_message:
+            error instanceof Error
+              ? error.message
+              : "Unknown error while listening for slides generation",
+        });
+        // Remove session parameter from URL
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.delete("session");
+        window.history.replaceState({}, "", newUrl.toString());
+        evtSource.close();
+      };
+    };
+
+    if (session) {
+      fetchSlides();
+    } else {
+      fetchUserSlides();
+    }
+
+    return () => {
+      if (evtSource) {
+        evtSource.close();
+      }
+    };
+  }, []);
+  // Function to scroll to specific slide
+  const handleSlideClick = (index: number) => {
+    const slideElement = document.getElementById(`slide-${index}`);
+    if (slideElement) {
+      slideElement.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+      setSelectedSlide(index);
+    }
+  };
+  // Function to fetch the user slides
+  const fetchUserSlides = async () => {
+    try {
+      //? Mixpanel User Tracking
+      sendMpEvent(MixpanelEventName.fetchingPresentationSlides, {
+        presentation_id: presentation_id,
+      });
+      const user = await getUser(supabase);
+      const data = await DashboardApi.getPresentation(
+        presentation_id,
+        user?.id!
+      );
+      if (data) {
+        dispatch(
+          setThemeColors({
+            ...data.presentation.theme.colors,
+            theme: data.presentation.theme.name as ThemeType,
+          })
+        );
+        setColorsVariables(
+          data.presentation.theme.colors,
+          data.presentation.theme.name as ThemeType
+        );
+        dispatch(setPresentationData(data));
+        setLoading(false);
+      }
+    } catch (error) {
+      setError(true);
+      toast({
+        title: "Error",
+        description: "Failed to load presentation",
+        variant: "destructive",
+      });
+      //? Mixpanel User Tracking
+      sendMpEvent(MixpanelEventName.error, {
+        error_message:
+          error instanceof Error
+            ? error.message
+            : "Unknown error while fetching presentation slides",
+      });
+      console.error("Error fetching user slides:", error);
+      setLoading(false);
+    }
+  };
+  const setColorsVariables = (colors: ThemeColors, theme: ThemeType) => {
+    const root = document.documentElement;
+    Object.entries(colors).forEach(([key, value]) => {
+      const cssKey = key.replace(/[A-Z]/g, (m) => "-" + m.toLowerCase());
+      root.style.setProperty(`--${theme}-${cssKey}`, value);
+    });
+  };
+  // Function to toggle fullscreen
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+      setIsFullscreen(true);
+    } else {
+      document.exitFullscreen();
+      setIsFullscreen(false);
+    }
+    //? Mixpanel User Tracking
+    sendMpEvent(MixpanelEventName.fullscreenToggled, {
+      presentation_id: presentation_id,
+      fullscreen: isFullscreen,
+    });
+  };
+  // Function to handle present exit
+  const handlePresentExit = () => {
+    setIsFullscreen(false);
+    router.push(`/presentation/${presentation_id}`);
+  };
+  // Function to handle slide change  for presentation mode
+  const handleSlideChange = useCallback(
+    (newSlide: number) => {
+      if (newSlide >= 0 && newSlide < presentationData?.slides.length!) {
+        //? Mixpanel User Tracking
+        sendMpEvent(MixpanelEventName.slideSelected, {
+          presentation_id: presentation_id,
+          slide_index: newSlide,
+        });
+        setSelectedSlide(newSlide);
+        router.push(
+          `/presentation/${presentation_id}?mode=present&slide=${newSlide}`,
+          { scroll: false }
+        );
+      }
+    },
+    [presentation_id, router]
+  );
+
+  const handleSlideSave = async () => {
+    //? Mixpanel User Tracking
+    sendMpEvent(MixpanelEventName.savingSlides, {
+      presentation_id: presentation_id,
+    });
+    const apiBody = {
+      presentation_id: presentation_id,
+
+      slides: presentationData?.slides!,
+    };
+    const response = await PresentationGenerationApi.updatePresentationContent(
+      apiBody
+    );
+    if (response) {
+      //? Mixpanel User Tracking
+      sendMpEvent(MixpanelEventName.toastShown, {
+        toast_type: "success",
+        toast_message: "Presentation updated successfully",
+      });
+      toast({
+        title: "Success",
+        description: "Presentation updated successfully",
+      });
+    }
+  };
+
+  const handleNewSlide = (type: number) => {
+    const newSlide: Slide = getEmptySlideContent(
+      type,
+      presentationData?.slides.length!,
+      presentation_id
+    );
+    //? Mixpanel User Tracking
+    sendMpEvent(MixpanelEventName.addingSlides, {
+      presentation_id: presentation_id,
+      slide_index: presentationData?.slides.length!,
+    });
+
+    dispatch(
+      addSlide({ slide: newSlide, index: presentationData?.slides.length! })
+    );
+
+    // // Scroll to the new slide
+    setTimeout(() => {
+      const slideElement = document.getElementById(
+        `slide-${presentationData?.slides.length!}`
+      );
+      if (slideElement) {
+        slideElement.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+        setSelectedSlide(presentationData?.slides.length!);
+      }
+    }, 100);
+  };
+  const handleDeleteSlide = async (index: number) => {
+    //? Mixpanel User Tracking
+    sendMpEvent(MixpanelEventName.deletingSlides, {
+      presentation_id: presentation_id,
+      slide_index: index,
+    });
+
+    dispatch(deletePresentationSlide(index));
+    const response = PresentationGenerationApi.deleteSlide(
+      user?.id!,
+      presentation_id,
+      presentationData?.slides[index].id!
+    );
+  };
+
+  if (isPresentMode) {
+    return (
+      <PresentationMode
+        presentationId={presentation_id}
+        slides={presentationData?.slides!}
+        currentSlide={currentSlide}
+        currentTheme={currentTheme}
+        isFullscreen={isFullscreen}
+        onFullscreenToggle={toggleFullscreen}
+        onExit={handlePresentExit}
+        onSlideChange={handleSlideChange}
+      />
+    );
+  }
+
+  // Regular view
+  return (
+    <div className="h-screen flex overflow-hidden flex-col">
+      <FooterProvider userId={presentationData?.presentation?.user_id!}>
+        {/* Auto save loading state */}
+        {autoSaveLoading && (
+          <div className="fixed right-6 top-[5.2rem] z-50 bg-white bg-opacity-50 flex items-center justify-center">
+            <Loader2 className="animate-spin text-primary" />
+          </div>
+        )}
+        <Header presentation_id={presentation_id} currentSlide={currentSlide} />
+        <Help />
+        {error ? (
+          <div className="flex flex-col items-center justify-center h-screen bg-gray-100">
+            <div
+              className="bg-white border border-red-300 text-red-700 px-6 py-8 rounded-lg shadow-lg flex flex-col items-center"
+              role="alert"
+            >
+              <AlertCircle className="w-16 h-16 mb-4 text-red-500" />
+              <strong className="font-bold text-4xl mb-2">Oops!</strong>
+              <p className="block text-2xl py-2">
+                We encountered an issue loading your presentation.
+              </p>
+              <p className="text-lg py-2">
+                Please check your internet connection or try again later.
+              </p>
+              <Button
+                className="mt-4 bg-red-500 text-white hover:bg-red-600 focus:ring-4 focus:ring-red-300"
+                onClick={() => window.location.reload()}
+              >
+                Retry
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div
+            style={{
+              background: currentColors.background,
+            }}
+            className="flex flex-1  relative pt-6"
+          >
+            <SidePanel
+              selectedSlide={selectedSlide}
+              onSlideClick={handleSlideClick}
+              loading={loading}
+              isMobilePanelOpen={isMobilePanelOpen}
+              setIsMobilePanelOpen={setIsMobilePanelOpen}
+            />
+            <div className="flex-1 h-[calc(100vh-100px)]  overflow-y-auto">
+              <div
+                className="mx-auto flex flex-col items-center  overflow-hidden  justify-center p-2 sm:p-6  pt-0 slide-theme"
+                data-theme={currentTheme}
+              >
+                {!presentationData ||
+                loading ||
+                !presentationData?.slides ||
+                presentationData?.slides.length === 0 ? (
+                  <div className="relative w-full h-[calc(100vh-120px)] mx-auto ">
+                    <div className=" ">
+                      {Array.from({ length: 2 }).map((_, index) => (
+                        <Skeleton
+                          key={index}
+                          className="aspect-video bg-gray-400 my-4 w-full mx-auto max-w-[1280px]"
+                        />
+                      ))}
+                    </div>
+                    {session && <LoadingState />}
+                  </div>
+                ) : (
+                  <>
+                    {presentationData &&
+                      presentationData.slides &&
+                      presentationData.slides.length > 0 &&
+                      presentationData.slides.map((slide, index) => (
+                        <SlideContent
+                          key={`${slide.type}-${index}-${slide.index}}`}
+                          slide={slide}
+                          index={index}
+                          userId={user?.id!}
+                          presentationId={presentation_id}
+                          onDeleteSlide={handleDeleteSlide}
+                        />
+                      ))}
+                    {isStreaming === false && showFeedback && (
+                      <FeedbackSlide
+                        showFeedback={showFeedback}
+                        setShowFeedback={setShowFeedback}
+                      />
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </FooterProvider>
+    </div>
+  );
+};
+
+export default PresentationPage;

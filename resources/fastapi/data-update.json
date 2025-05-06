@@ -1,0 +1,298 @@
+{
+    "presentation": {
+        "id": "baefc3c1-1383-4c42-80f1-fb111e729981",
+        "user_id": "e3f75cc8-b03a-452d-ad83-bb4207413436",
+        "created_at": "2025-03-22T15:27:52.950504+00:00",
+        "prompt": "\n        create presentation    \n    ",
+        "n_slides": 7,
+        "theme": {
+            "name": "cream",
+            "colors": {
+                "theme": "cream",
+                "slideBg": "#ffffff",
+                "slideBox": "#f4f4f4",
+                "slideTitle": "#181D27",
+                "slideHeading": "#252B37",
+                "slideDescription": "#595F6C"
+            }
+        },
+        "file": null,
+        "vector_store": null,
+        "title": "Facebook's Impact on College Mental Health",
+        "titles": [
+            "Social Media Surge in Pandemic",
+            "Facebook's Introduction and College Life",
+            "Key Findings: Mental Health Effects",
+            "Heterogeneous Effects Explored",
+            "Mechanisms Behind Facebook Impact",
+            "Implications for Mental Health",
+            "Conclusions and Future Insights"
+        ],
+        "language": "English (English)",
+        "thumbnail": null,
+        "questions": [
+            {
+                "question": "Who are you presenting data to?",
+                "options": [
+                    "Colleges",
+                    "Public",
+                    "Researchers"
+                ]
+            },
+            {
+                "question": "What do you need your audience to know?",
+                "options": [
+                    "Facebook's impact",
+                    "Mental health issues",
+                    "Research methods"
+                ]
+            },
+            {
+                "question": "What should be the tone of presentation?",
+                "options": [
+                    "Informative",
+                    "Persuasive",
+                    "Formal"
+                ]
+            },
+            {
+                "question": "What data points should be used to reach conclusion?",
+                "options": [
+                    "Depression rates",
+                    "Student surveys",
+                    "Mental health index"
+                ]
+            }
+        ],
+        "answers": null,
+        "big_idea": null,
+        "story_type": null,
+        "story": null,
+        "interpreted_report_content": null
+    },
+    "slides": [
+        {
+            "id": "22858d02-0f73-4922-9a76-4c1ae1af2f39",
+            "index": 0,
+            "type": 1,
+            "design_index": null,
+            "images": [
+                "user-e3f75cc8-b03a-452d-ad83-bb4207413436/baefc3c1-1383-4c42-80f1-fb111e729981/images/cb845e27-90ad-4a39-800b-a05523b9b6b6.jpg"
+            ],
+            "icons": null,
+            "presentation": "baefc3c1-1383-4c42-80f1-fb111e729981",
+            "content": {
+                "title": "Social Media Surge in Pandemic",
+                "body": "Social media use surged during the COVID-19 pandemic, with over **4.3 billion** users reported in **2021**. Platforms provided essential communication but raised mental health concerns.",
+                "image_prompts": [
+                    "a collage of various social media icons representing digital connectivity, seamless communication, and global interaction, showing diverse people engaged online, don't include text in image"
+                ]
+            }
+        },
+        {
+            "id": "529f45ce-7f80-47a2-89f3-51f778ffbf88",
+            "index": 1,
+            "type": 2,
+            "design_index": null,
+            "images": null,
+            "icons": null,
+            "presentation": "baefc3c1-1383-4c42-80f1-fb111e729981",
+            "content": {
+                "title": "Facebook's Introduction and College Life",
+                "body": [
+                    {
+                        "heading": "Facebook Rollout",
+                        "description": "In 2004, Facebook was introduced across U.S. campuses, revolutionizing student communication."
+                    },
+                    {
+                        "heading": "Student Impact",
+                        "description": "Transformed social dynamics by providing a platform for online interaction and information sharing."
+                    },
+                    {
+                        "heading": "Communication Shift",
+                        "description": "Facilitated new ways for students to connect, creating lasting changes in socialization and networking."
+                    }
+                ]
+            }
+        },
+        {
+            "id": "5b021da6-46d2-4899-b8b6-627f14c7b560",
+            "index": 2,
+            "type": 5,
+            "design_index": null,
+            "images": null,
+            "icons": null,
+            "presentation": "baefc3c1-1383-4c42-80f1-fb111e729981",
+            "content": {
+                "title": "Key Findings: Mental Health Effects",
+                "body": "The introduction of Facebook increased poor mental health by **0.085** SDs, affecting vulnerable students with rises in depression and antidepressant use.",
+                "graph": {
+                    "id": "3",
+                    "name": "Mental Health Impact of Facebook Introduction by College Year",
+                    "type": "bar",
+                    "presentation": null,
+                    "unit": "Unit of the data in the graph. Example: %, kg, million USD, tonnes, etc.",
+                    "data": {
+                        "categories": [
+                            "First Year",
+                            "Second Year",
+                            "Third Year",
+                            "Fourth Year"
+                        ],
+                        "series": [
+                            {
+                                "name": "Facebook Introduction",
+                                "data": [
+                                    0.1,
+                                    0.08,
+                                    0.07,
+                                    0.06
+                                ]
+                            }
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "id": "641e7dc3-8896-4faa-b377-431773abc124",
+            "index": 3,
+            "type": 6,
+            "design_index": null,
+            "images": null,
+            "icons": null,
+            "presentation": "baefc3c1-1383-4c42-80f1-fb111e729981",
+            "content": {
+                "title": "Heterogeneous Effects Explored",
+                "description": "Analyzing diverse impacts of Facebook on mental health, focusing on social comparison behaviors and their link to depression and anxiety.",
+                "body": [
+                    {
+                        "heading": "Social Comparison Behaviors",
+                        "description": "Patterns of comparing oneself to others publicly displayed on social media."
+                    },
+                    {
+                        "heading": "Vulnerability Groups",
+                        "description": "Individuals with tendencies towards unfavorable comparisons faced greater mental health challenges."
+                    },
+                    {
+                        "heading": "Negative Outcomes",
+                        "description": "Increased feelings of inadequacy and low self-esteem associated with depression and anxiety trends."
+                    }
+                ]
+            }
+        },
+        {
+            "id": "bc385f46-0831-42f3-b6fd-d8729210a12c",
+            "index": 4,
+            "type": 7,
+            "design_index": null,
+            "images": null,
+            "icons": [
+                "user-e3f75cc8-b03a-452d-ad83-bb4207413436/baefc3c1-1383-4c42-80f1-fb111e729981/icons/8b841c5b-43e7-4c93-8425-c3a77845c9bc.png",
+                "user-e3f75cc8-b03a-452d-ad83-bb4207413436/baefc3c1-1383-4c42-80f1-fb111e729981/icons/3b8729d1-7831-4a47-80e2-a3fc2f4aae4d.png",
+                "user-e3f75cc8-b03a-452d-ad83-bb4207413436/baefc3c1-1383-4c42-80f1-fb111e729981/icons/684f0d80-694d-4bfe-8dc8-a3b09a1b25ec.png",
+                "user-e3f75cc8-b03a-452d-ad83-bb4207413436/baefc3c1-1383-4c42-80f1-fb111e729981/icons/dc937e07-9573-4dd2-b540-63247304d57e.png"
+            ],
+            "presentation": "baefc3c1-1383-4c42-80f1-fb111e729981",
+            "content": {
+                "title": "Mechanisms Behind Facebook Impact",
+                "body": [
+                    {
+                        "heading": "Unfavorable Social Comparisons",
+                        "description": "Facebook promotes social comparisons leading to mental distress."
+                    },
+                    {
+                        "heading": "Disruptive Internet Use",
+                        "description": "Excessive social media use disrupts daily routines, impacting mental well-being."
+                    },
+                    {
+                        "heading": "Focus on Social Comparisons",
+                        "description": "Emphasizes the role of social comparisons in negative mental health outcomes."
+                    },
+                    {
+                        "heading": "Indirect Effects",
+                        "description": "Social media acts as both a stressor and disruptor in daily life for students."
+                    }
+                ],
+                "icon_queries": [
+                    {
+                        "queries": [
+                            "unfavorable social comparisons",
+                            "comparisons",
+                            "social"
+                        ]
+                    },
+                    {
+                        "queries": [
+                            "internet use",
+                            "internet",
+                            "technology"
+                        ]
+                    },
+                    {
+                        "queries": [
+                            "social comparisons",
+                            "comparisons",
+                            "social"
+                        ]
+                    },
+                    {
+                        "queries": [
+                            "stressors",
+                            "disruption",
+                            "impact"
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "id": "1be63f11-8afe-4a9d-b043-868dcdd3d459",
+            "index": 5,
+            "type": 2,
+            "design_index": null,
+            "images": null,
+            "icons": null,
+            "presentation": "baefc3c1-1383-4c42-80f1-fb111e729981",
+            "content": {
+                "title": "Implications for Mental Health",
+                "body": [
+                    {
+                        "heading": "Preventive Strategies",
+                        "description": "Developing new strategies focusing on reducing social media usage for mental health improvement."
+                    },
+                    {
+                        "heading": "College Regulations",
+                        "description": "Implementing specific regulations to monitor and control social media interactions among students."
+                    },
+                    {
+                        "heading": "Mental Health Awareness",
+                        "description": "Increasing awareness of social media's impact on mental health for students and educators."
+                    },
+                    {
+                        "heading": "Future Research & Policy",
+                        "description": "Understanding the nuanced relationship between social media and mental well-being for future policies."
+                    }
+                ]
+            }
+        },
+        {
+            "id": "e88d82f0-4c79-4f4c-b20b-f99eff3e7143",
+            "index": 6,
+            "type": 1,
+            "design_index": null,
+            "images": [
+                "user-e3f75cc8-b03a-452d-ad83-bb4207413436/baefc3c1-1383-4c42-80f1-fb111e729981/images/7de07767-0f29-4025-bd26-8ba0b4b9cc46.jpg"
+            ],
+            "icons": null,
+            "presentation": "baefc3c1-1383-4c42-80f1-fb111e729981",
+            "content": {
+                "title": "Conclusions and Future Insights",
+                "body": "The introduction of Facebook correlates with increased depression and anxiety among college students. Highlights importance of further study on social media's mental health effects.",
+                "image_prompts": [
+                    "a detailed research paper on a desk with highlight markers, don't include text"
+                ]
+            }
+        }
+    ]
+}

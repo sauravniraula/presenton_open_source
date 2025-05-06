@@ -1,0 +1,1 @@
+export const baseURL = "https://eyupci2ut4.ap-south-1.awsapprunner.com"

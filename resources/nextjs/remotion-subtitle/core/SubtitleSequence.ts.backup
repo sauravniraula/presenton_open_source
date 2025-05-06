@@ -1,0 +1,44 @@
+import { Sequence, staticFile } from "remotion";
+import React, { ComponentType } from "react";
+import { CaptionProps, SubtitleData } from '../index';
+
+class SubtitleSequence {
+    private text: string = '';
+    private promise: Promise<void>;
+
+    constructor(path: string) {
+        this.promise = new Promise((resolve, reject) => {
+            fetch(path)
+                .then((res) => res.text())
+                .then((text) => {
+                    this.text = text;
+                    resolve();
+                })
+                .catch((err) => {
+                    console.log('Error fetching subtitles', err);
+                    reject(err);
+                });
+        });
+    }
+
+    ready(): Promise<void> {
+        return this.promise;
+    }
+
+    getSequences(component: ComponentType<CaptionProps>, fps: number = 30): React.ReactNode[] {
+        const subtitleData = this.getArray(fps);
+        return subtitleData.map((item, i) => (
+            <Sequence
+                key={i}
+                durationInFrames={item.endFrame - item.startFrame}
+                from={item.startFrame}
+            >
+                {React.createElement(component, { text: item.text })}
+            </Sequence>
+        ));
+    }
+
+    // ... rest of the methods remain the same but with TypeScript types
+}
+
+export default SubtitleSequence; 

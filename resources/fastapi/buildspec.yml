@@ -1,0 +1,14 @@
+version: 0.2
+phases:
+  pre_build:
+    commands:
+      - echo Logging in to ECR...
+      - aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin 471112542209.dkr.ecr.ap-south-1.amazonaws.com/presenton/presentation_generator_test
+  build:
+    commands:
+      - echo Building the Docker image...
+      - docker build -t 471112542209.dkr.ecr.ap-south-1.amazonaws.com/presenton/presentation_generator_test .
+  post_build:
+    commands:
+      - echo Pushing the Docker image to ECR...
+      - docker push 471112542209.dkr.ecr.ap-south-1.amazonaws.com/presenton/presentation_generator_test

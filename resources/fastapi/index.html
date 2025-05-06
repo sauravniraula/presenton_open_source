@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Presentation Stream</title>
+    <style>
+        #output {
+            white-space: pre-wrap;
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin: 10px;
+            min-height: 200px;
+        }
+
+        #metrics {
+            margin: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="metrics">
+        Time to First Token: <span id="ttft">-</span> seconds<br>
+        Total Time: <span id="totalTime">-</span> seconds
+    </div>
+    <div id="output"></div>
+
+    <script>
+        const outputDiv = document.getElementById('output');
+        const ttftSpan = document.getElementById('ttft');
+        const totalTimeSpan = document.getElementById('totalTime');
+
+        const startTime = performance.now();
+        let ttft = null;
+        let streamTime = {};
+        let presentation = "";
+
+        const streamUrl = "https://presentation-generator-fragrant-mountain-1643.fly.dev/ppt/generate/stream?user_id=701de4bf-3323-4826-8f27-3a99b40b0f48&presentation_id=9d90a249-eac1-40b4-90ee-0baf4da9f125&session=c8d7852a-6ec4-486b-876a-6d8f9feded7d";
+
+        const eventSource = new EventSource(streamUrl);
+
+        console.log(eventSource);
+
+        // Add event listener for connection open
+        eventSource.onopen = function (event) {
+            console.log('Connection opened');
+        };
+
+
+        eventSource.addEventListener("response", (data) => {
+            data = JSON.parse(data.data)
+            console.log(data)
+            if (data.type === "chunk") {
+                const currentTime = (performance.now() - startTime) / 1000;
+
+                if (!ttft) {
+                    ttft = currentTime;
+                    ttftSpan.textContent = ttft.toFixed(2);
+                }
+
+                console.log('Received chunk:', data.chunk); // Log each chunk
+
+                presentation += data.chunk;
+                streamTime[currentTime] = presentation.length;
+                outputDiv.textContent = presentation;
+                console.log("in presentation", presentation)
+                console.log('Stream time:', streamTime);
+            }
+
+            if (data.type === "complete") {
+                const totalTime = (performance.now() - startTime) / 1000;
+                totalTimeSpan.textContent = totalTime.toFixed(2);
+
+                console.log("Stream completed");
+                console.log("Final presentation:", data.presentation);
+                eventSource.close();
+            }
+            if (data.type == "closing") {
+                console.log("Closing stream")
+                console.log(data)
+                eventSource.close()
+            }
+        })
+
+
+        eventSource.onerror = function (error) {
+            console.log("Event Source State: ", eventSource.readyState)
+            if (eventSource.readyState === EventSource.CLOSED) {
+                console.log("Server closed the connection");
+                eventSource.close();
+            } else {
+                console.error("EventSource error is here:", error);
+                // Handle other errors but don't close the connection
+                // unless it's a critical error
+            }
+
+        };
+    </script>
+</body>
+
+</html>

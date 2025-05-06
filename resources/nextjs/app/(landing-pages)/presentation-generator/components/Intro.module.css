@@ -1,0 +1,62 @@
+.flipContainer {
+  display: inline-block;
+  perspective: 1000px;
+}
+
+.flipper {
+  display: inline-block;
+  position: relative;
+  color: #5141e5;
+}
+
+.front,
+.back {
+  display: inline-block;
+  width: 100%;
+  position: absolute;
+  left: 0;
+  opacity: 0;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  animation: flipAnimation 12s ease-in-out infinite;
+}
+
+.front {
+  position: relative;
+  opacity: 1;
+}
+
+.back:nth-child(2) {
+  animation-delay: 3s;
+}
+
+.back:nth-child(3) {
+  animation-delay: 6s;
+}
+
+.back:nth-child(4) {
+  animation-delay: 9s;
+}
+.back:nth-child(5) {
+  animation-delay: 12s;
+}
+.back:nth-child(6) {
+  animation-delay: 15s;
+}
+
+@keyframes flipAnimation {
+  0%,
+  20% {
+    transform: rotateX(0deg);
+    opacity: 1;
+  }
+  25%,
+  95% {
+    transform: rotateX(180deg);
+    opacity: 0;
+  }
+  100% {
+    transform: rotateX(360deg);
+    opacity: 1;
+  }
+}

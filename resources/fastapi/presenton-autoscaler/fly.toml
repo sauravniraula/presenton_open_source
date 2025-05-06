@@ -1,0 +1,18 @@
+app = "presenton-autoscaler"
+primary_region = "sin"
+
+[build]
+image = "flyio/fly-autoscaler:0.3"
+
+[env]
+FAS_PROMETHEUS_ADDRESS = "https://api.fly.io/prometheus/kinu"
+FAS_PROMETHEUS_METRIC_NAME = "qdepth"
+FAS_PROMETHEUS_QUERY = "sum(queue_depth{app='$APP_NAME'})"
+
+FAS_APP_NAME = "presentation-generator-fragrant-mountain-1643"
+FAS_CREATED_MACHINE_COUNT = "max(0, min(3, 1 + floor(qdepth / 5)))"
+
+[metrics]
+port = 9090
+path = "/metrics"
+
