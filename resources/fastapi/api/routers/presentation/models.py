@@ -1,13 +1,12 @@
+from datetime import datetime
 import json
 from typing import List, Optional, Literal
 from pydantic import BaseModel
 
+from api.sql_models import PresentationSqlModel, SlideSqlModel
 from graph_processor.models import GraphModel
 from ppt_config_generator.models import (
     PresentationConfigurationModel,
-    QuestionAnswerModel,
-    QuestionOptionsModel,
-    StoryTypeEnum,
     TitleWithGraphIdModel,
 )
 from ppt_generator.models.pptx_models import PptxPresentationModel
@@ -29,45 +28,15 @@ class DocumentHypothesis(BaseModel):
     supporting_data: DocumentHypothesisSupportingData
 
 
-class DocumentInterpretedReport(BaseModel):
-    complete_report: str
-    hypotheses: List[DocumentHypothesis]
-
-    def to_gpt_input(self):
-        return {
-            "Spreadsheet report": self.complete_report,
-            "Findings": [
-                {
-                    "Finding": each.hypothesis,
-                    "Supporting data": each.supporting_data.numerical_data,
-                }
-                for each in self.hypotheses
-            ],
-        }
-
-
-class DocumentsAndImagesKeys(BaseModel):
+class DocumentsAndImagesPath(BaseModel):
     documents: Optional[List[str]] = None
     images: Optional[List[str]] = None
-
-
-class KeyAndUrl(BaseModel):
-    key: str
-    url: str
-
-class ChapterInfo(BaseModel):
-    id: str
-    chapter_title: str
-    course: str
-    book_title:  str
-    grade: str
-
 
 
 class PresentationModel(BaseModel):
     id: str
     user_id: str
-    created_at: Optional[str] = None
+    created_at: Optional[datetime] = None
     prompt: Optional[str] = None
     n_slides: int
     theme: Optional[dict] = None
@@ -78,14 +47,7 @@ class PresentationModel(BaseModel):
     language: Optional[str] = None
     summary: Optional[str] = None
     thumbnail: Optional[str] = None
-    questions: Optional[List[QuestionOptionsModel]] = None
-    answers: Optional[List[QuestionAnswerModel]] = None
-    big_idea: Optional[str] = None
-    story_type: Optional[StoryTypeEnum] = None
-    story: Optional[str] = None
-    interpreted_report_content: Optional[DocumentInterpretedReport] = None
     data: Optional[dict] = None
-    chapter_info: Optional[ChapterInfo] = None 
 
     def to_create_dict(self):
         temp = self.model_dump(mode="json")
@@ -99,7 +61,6 @@ class PresentationModel(BaseModel):
         temp = self.model_dump(mode="json")
         del temp["data"]
         del temp["summary"]
-        del temp["interpreted_report_content"]
 
         if self.file:
             temp["file"] = s3_service.get_public_bucket_public_url(self.file)
@@ -117,13 +78,9 @@ class GenerateResearchReportRequest(BaseModel):
     query: str
 
 
-class DecomposeDocumentsRequest(DocumentsAndImagesKeys):
-    # user_id: str
-    # presentation_id: str
+class DecomposeDocumentsRequest(DocumentsAndImagesPath):
     pass
 
-class PromptTablesExtractionRequest(BaseModel):
-    prompt: str
 
 class GeneratePresentationRequirementsRequest(BaseModel):
     prompt: Optional[str] = None
@@ -132,61 +89,10 @@ class GeneratePresentationRequirementsRequest(BaseModel):
     documents: Optional[List[str]] = None
     research_reports: Optional[List[str]] = None
     images: Optional[List[str]] = None
-    sources: Optional[List[str]] = []
-    chapter_info: Optional[ChapterInfo] = None
-
-
-class SubmitInterpretedReportRequest(BaseModel):
-    presentation_id: str
-    report: DocumentInterpretedReport
-
-
-class SubmitQuestionAnswersRequest(BaseModel):
-    presentation_id: str
-    answers: List[QuestionAnswerModel]
-
-
-class GeneratePresentationStoryRequest(BaseModel):
-    presentation_id: str
-    big_idea: Optional[str] = None
-    story_type: Optional[StoryTypeEnum] = None
-    sources: Optional[List[str]] = []
 
 
 class GenerateTitleRequest(BaseModel):
     presentation_id: str
-
-
-class ProcessChartsRequest(BaseModel):
-    documents: Optional[List[str]] = None
-    charts: Optional[List[str]] = None
-
-
-class DeplotChartsRequest(BaseModel):
-    presentation_id: str
-    research_reports: Optional[List[str]] = None
-    images: Optional[List[str]] = None
-    chart_links: Optional[List[str]] = None
-    table_links: Optional[List[str]] = None
-
-
-class AssignChartsRequest(BaseModel):
-    presentation_id: str
-    # charts: List[GraphModel]
-
-
-class AssignChartsResponse(BaseModel):
-    title_with_charts: List[TitleWithGraphIdModel]
-
-
-class AddChartsRequest(BaseModel):
-    presentation_id: str
-    charts: List[GraphModel]
-
-
-class UpdateChartsRequest(BaseModel):
-    presentation_id: str
-    charts: List[GraphModel]
 
 
 class PresentationGenerateRequest(BaseModel):
@@ -195,7 +101,6 @@ class PresentationGenerateRequest(BaseModel):
     images: Optional[List[str]] = None
     watermark: bool = True
     titles: List[str]
-    sources: List[str]
 
 
 class GenerateImageRequest(BaseModel):
@@ -252,28 +157,19 @@ class ExportAsRequest(BaseModel):
 
 class DecomposeDocumentsResponse(BaseModel):
     documents: dict
-    images: dict
-    charts: dict
-    tables: dict
 
-
-class PromptTablesExtractionResponse(BaseModel):
-    tables: List[TableMarkdownModel]
-    prompt: str
-    source: str
 
 class PresentationAndSlides(BaseModel):
-    presentation: PresentationModel
-    slides: List[SlideModel]
+    presentation: PresentationSqlModel
+    slides: List[SlideSqlModel]
 
     def to_response_dict(self):
         presentation = self.presentation.model_dump(mode="json")
-        del presentation["data"]
-        del presentation["summary"]
         return {
             "presentation": presentation,
             "slides": [each.model_dump(mode="json") for each in self.slides],
         }
+
 
 class PresentationUpdateRequest(BaseModel):
     presentation_id: str
@@ -288,6 +184,7 @@ class PresentationUpdateRequest(BaseModel):
             "slides": [each.model_dump(mode="json") for each in self.slides],
         }
 
+
 class PresentationWithImage(PresentationModel):
     image: Optional[str] = None
 
@@ -300,6 +197,16 @@ class PresentationAndUrl(BaseModel):
 class PresentationAndUrls(BaseModel):
     presentation_id: str
     urls: List[str]
+
+
+class PresentationAndPath(BaseModel):
+    presentation_id: str
+    path: str
+
+
+class PresentationAndPaths(BaseModel):
+    presentation_id: str
+    paths: List[str]
 
 
 class UpdatePresentationTitlesRequest(BaseModel):

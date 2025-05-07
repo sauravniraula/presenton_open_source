@@ -4,13 +4,7 @@ from pydantic import BaseModel
 from api.routers.presentation.models import PresentationModel
 
 
-class UserPreferences(BaseModel):
-    id: str
-    theme: Optional[dict] = None
-
-
 class LogMetadata(BaseModel):
-    user: Optional[str] = None
     presentation: Optional[str] = None
     title: Optional[str] = None
     endpoint: Optional[str] = None
@@ -21,7 +15,6 @@ class LogMetadata(BaseModel):
         cls, presentation: PresentationModel, endpoint: Optional[str] = None
     ):
         return cls(
-            user=presentation.user_id,
             presentation=presentation.id,
             title=presentation.title,
             endpoint=endpoint,
@@ -29,7 +22,7 @@ class LogMetadata(BaseModel):
 
     @property
     def stream_name(self):
-        return f"Endpoint - {self.endpoint}, User - {self.user}, Presentation - {self.presentation}"
+        return f"Endpoint - {self.endpoint}, Presentation - {self.presentation}"
 
 
 class SessionModel(BaseModel):

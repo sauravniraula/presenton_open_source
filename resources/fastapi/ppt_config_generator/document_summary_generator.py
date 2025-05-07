@@ -29,29 +29,30 @@ sysmte_prompt = """Generate a blog-style summary of the provided document in **m
 
 
 async def generate_document_summary(documents: List[Document]):
-    coroutines = []
-    for document in documents:
-        text = document.page_content
-        truncated_text = text_splitter.split_text(text)[0]
-        coroutine = groq_client.chat.completions.create(
-            model="llama-3.1-8b-instant",
-            messages=[
-                {
-                    "role": "system",
-                    "content": sysmte_prompt,
-                },
-                {"role": "user", "content": truncated_text},
-            ],
-            temperature=1,
-            max_completion_tokens=8000,
-            top_p=1,
-            stream=False,
-            stop=None,
-        )
-        coroutines.append(coroutine)
+    # coroutines = []
+    # for document in documents:
+    #     text = document.page_content
+    #     truncated_text = text_splitter.split_text(text)[0]
+    #     coroutine = groq_client.chat.completions.create(
+    #         model="llama-3.1-8b-instant",
+    #         messages=[
+    #             {
+    #                 "role": "system",
+    #                 "content": sysmte_prompt,
+    #             },
+    #             {"role": "user", "content": truncated_text},
+    #         ],
+    #         temperature=1,
+    #         max_completion_tokens=8000,
+    #         top_p=1,
+    #         stream=False,
+    #         stop=None,
+    #     )
+    #     coroutines.append(coroutine)
 
-    completions = await asyncio.gather(*coroutines)
-    combined = "\n\n".join(
-        [completion.choices[0].message.content for completion in completions]
-    )
-    return combined
+    # completions = await asyncio.gather(*coroutines)
+    # combined = "\n\n".join(
+    #     [completion.choices[0].message.content for completion in completions]
+    # )
+    # return combined
+    return "Summary of documents"

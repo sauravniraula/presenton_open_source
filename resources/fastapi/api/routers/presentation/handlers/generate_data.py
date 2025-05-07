@@ -4,7 +4,8 @@ from fastapi import HTTPException
 from api.models import LogMetadata, SessionModel
 from api.routers.presentation.models import PresentationGenerateRequest
 from api.services.logging import LoggingService
-from api.services.instances import supabase_service
+from api.sql_models import KeyValueSqlModel
+from api.services.database import sql_session
 
 
 class PresentationGenerateDataHandler:
@@ -22,9 +23,14 @@ class PresentationGenerateDataHandler:
         if not self.data.titles:
             raise HTTPException(400, "Titles can not be empty")
 
-        await supabase_service.save_generate_presentation_data(self.session, self.data)
-
-        
+        key_value_model = KeyValueSqlModel(
+            id=self.session,
+            key=self.session,
+            value=self.data.model_dump(mode="json"),
+        )
+        sql_session.add(key_value_model)
+        sql_session.commit()
+        sql_session.refresh(key_value_model)
 
         response = SessionModel(session=self.session)
         logging_service.logger.info(

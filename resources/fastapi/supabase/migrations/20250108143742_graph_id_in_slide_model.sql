@@ -1,1 +1,0 @@
-ALTER TABLE "public"."v3-slides" ADD COLUMN "graph_id" UUID;

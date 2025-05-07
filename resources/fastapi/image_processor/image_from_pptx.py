@@ -13,9 +13,8 @@ from image_processor.utils import get_page_images_from_pdf
 def get_pdf_from_pptx(pptx_path: str, temp_dir: str) -> str:
     base_name = os.path.splitext(os.path.basename(pptx_path))[0]
 
-    # TODO: Change libreoffice name accordingly
     subprocess.run(
-        f"libreoffice --headless --invisible --convert-to pdf {pptx_path} --outdir {temp_dir}",
+        f"{os.getenv('LIBREOFFICE')} --headless --invisible --convert-to pdf {pptx_path} --outdir {temp_dir}",
         shell=True,
         capture_output=True,
     )

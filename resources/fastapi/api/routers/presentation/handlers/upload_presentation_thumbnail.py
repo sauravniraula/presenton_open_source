@@ -1,22 +1,25 @@
+import os
 import uuid
 from fastapi import UploadFile
 
 from api.models import LogMetadata
-from api.routers.presentation.models import PresentationAndUrl
+from api.routers.presentation.models import PresentationAndPath
 from api.services.logging import LoggingService
-from api.services.instances import temp_file_service, supabase_service, s3_service
-from api.utils import get_file_keys, save_uploaded_files
+from api.services.instances import temp_file_service
+from api.sql_models import PresentationSqlModel
+from api.services.database import sql_session
 
 
 class UploadPresentationThumbnailHandler:
 
-    def __init__(self, user_id: str, presentation_id: str, thumbnail: UploadFile):
-        self.user_id = user_id
+    def __init__(self, presentation_id: str, thumbnail: UploadFile):
         self.presentation_id = presentation_id
         self.thumbnail = thumbnail
 
         self.session = str(uuid.uuid4())
         self.temp_dir = temp_file_service.create_temp_dir(self.session)
+
+        self.presentation_dir = temp_file_service.create_temp_dir(self.presentation_id)
 
     def __del__(self):
         temp_file_service.cleanup_temp_dir(self.temp_dir)
@@ -32,25 +35,16 @@ class UploadPresentationThumbnailHandler:
             extra=log_metadata.model_dump(),
         )
 
-        presentation = await supabase_service.get_presentation(self.presentation_id)
+        presentation = sql_session.get(PresentationSqlModel, self.presentation_id)
 
-        if presentation.thumbnail:
-            s3_service.delete_public_files([presentation.thumbnail])
+        with open(os.path.join(self.presentation_dir, "thumbnail.jpg"), "wb") as f:
+            f.write(await self.thumbnail.read())
 
-        _, file_keys = get_file_keys(
-            [self.thumbnail.filename],
-            f"user-{self.user_id}/{self.presentation_id}",
-        )
-        file_paths = save_uploaded_files(
-            temp_file_service, [self.thumbnail], file_keys, self.temp_dir
-        )
-        await s3_service.upload_public_file(file_keys[0], file_paths[0])
+        presentation.thumbnail = os.path.join(self.presentation_dir, "thumbnail.jpg")
+        sql_session.commit()
 
-        presentation.thumbnail = file_keys[0]
-        await supabase_service.upsert_presentation(presentation.to_create_dict())
-
-        response = PresentationAndUrl(
-            presentation_id=self.presentation_id, url=file_keys[0]
+        response = PresentationAndPath(
+            presentation_id=self.presentation_id, path=presentation.thumbnail
         )
         logging_service.logger.info(
             logging_service.message(response.model_dump(mode="json")),

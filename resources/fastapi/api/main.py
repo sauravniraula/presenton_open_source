@@ -1,8 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlmodel import SQLModel
+from contextlib import asynccontextmanager
 
 from api.routers.presentation.router import presentation_router
-from api.routers.video.router import video_router
+from api.services.database import sql_engine
 
 import sentry_sdk
 
@@ -14,9 +16,14 @@ sentry_sdk.init(
 )
 
 
-app = FastAPI()
-origins = ["*"]
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    SQLModel.metadata.create_all(sql_engine)
+    yield
 
+
+app = FastAPI(lifespan=lifespan)
+origins = ["*"]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -24,6 +31,4 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 app.include_router(presentation_router)
-app.include_router(video_router)

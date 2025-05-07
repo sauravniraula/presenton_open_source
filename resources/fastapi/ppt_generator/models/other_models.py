@@ -13,6 +13,7 @@ from ppt_generator.slide_designs.list_boxes import (
 )
 from pydantic import BaseModel
 
+
 class PresentationTheme(Enum):
     light = "light"
     dark = "dark"
@@ -61,8 +62,8 @@ class PresentationTheme(Enum):
 # 9. contains title, list of items and a graph.
 # """
 
-class SlideType(Enum):
 
+class SlideType(Enum):
     type1 = 1
     type2 = 2
     type3 = 3

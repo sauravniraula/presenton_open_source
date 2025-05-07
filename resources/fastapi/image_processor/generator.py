@@ -20,16 +20,24 @@ import json
 
 embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
 
-vector_store = UpstashVectorStore(embedding=embeddings, index_url = os.getenv("UPSTASH_VECTOR_REST_URL_ICONS"), index_token=os.getenv("UPSTASH_VECTOR_REST_TOKEN_ICONS"))
+vector_store = UpstashVectorStore(
+    embedding=embeddings,
+    index_url=os.getenv("UPSTASH_VECTOR_REST_URL_ICONS"),
+    index_token=os.getenv("UPSTASH_VECTOR_REST_TOKEN_ICONS"),
+)
 
-redis = Redis(url=os.getenv("UPSTASH_REDIS_REST_URL"), token=os.getenv("UPSTASH_REDIS_REST_TOKEN"))
+redis = Redis(
+    url=os.getenv("UPSTASH_REDIS_REST_URL"), token=os.getenv("UPSTASH_REDIS_REST_TOKEN")
+)
 
 IMAGE_GEN_MODEL = "black-forest-labs/flux-schnell"
 IMAGE_GEN_OUTPUT_FORMAT = "jpg"
 IMAGE_GEN_NUM_OUTPUTS = 1
 
-async def generate_image(input: ImagePromptWithAspectRatio, temp_dir: str) -> str:
+
+async def generate_image(input: ImagePromptWithAspectRatio, output_path: str) -> str:
     print(f"Request - Generating Image for {input.image_prompt}")
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
     replicate_client = replicate.Client(timeout=50)
     try:
         output = await replicate_client.async_run(
@@ -38,18 +46,18 @@ async def generate_image(input: ImagePromptWithAspectRatio, temp_dir: str) -> st
                 "prompt": f"{input.image_prompt}, {input.theme_prompt}",
                 "aspect_ratio": input.aspect_ratio.value,
                 "output_format": IMAGE_GEN_OUTPUT_FORMAT,
-                "num_outputs": IMAGE_GEN_NUM_OUTPUTS
+                "num_outputs": IMAGE_GEN_NUM_OUTPUTS,
             },
         )
         print(f"Resposne - Generated Image for {input.image_prompt}")
         file_bytes = output[0].read()
-        return temp_file_service.create_temp_file(
-            f"{str(uuid.uuid4())}.jpg", file_bytes, temp_dir
-        )
+        with open(output_path, "wb") as f:
+            f.write(file_bytes)
     except Exception as e:
         print("******** Error while generate image")
-        print(e)
-        return "assets/images/placeholder.jpg"
+        with open("assets/images/placeholder.jpg", "rb") as f_a:
+            with open(output_path, "wb") as f_b:
+                f_b.write(f_a.read())
 
 
 async def get_images(query: str, page: int, limit: int) -> List[str]:
@@ -60,11 +68,7 @@ async def get_images(query: str, page: int, limit: int) -> List[str]:
         response = await client.get(
             search_url,
             headers=headers,
-            params={
-                "query": query,
-                "page": page,
-                "per_page": limit
-            },
+            params={"query": query, "page": page, "per_page": limit},
         )
         if response.status != 200:
             raise HTTPException(400, "Error occured while searching images")
@@ -75,6 +79,7 @@ async def get_images(query: str, page: int, limit: int) -> List[str]:
             return list(map(lambda x: x["src"]["large"], response["photos"]))
 
         return []
+
 
 async def get_serp_images(query: str, page: int, limit: int) -> List[str]:
     search_url = "https://api.search.brave.com/res/v1/images/search"
@@ -89,8 +94,8 @@ async def get_serp_images(query: str, page: int, limit: int) -> List[str]:
                 "count": limit,
                 "search_lang": "en",
                 "country": "us",
-                "spellcheck": 1
-            }
+                "spellcheck": 1,
+            },
         )
         print(response)
         print(response.text)
@@ -105,10 +110,11 @@ async def get_serp_images(query: str, page: int, limit: int) -> List[str]:
         return []
 
 
-async def get_icon(input: IconQueryCollectionWithData, temp_dir: str) -> str:
+async def get_icon(input: IconQueryCollectionWithData, output_path: str) -> str:
     icon_url = None
     query = input.icon_query.queries[0]
     print(f"Request - Fetching Icon for {input.icon_query}")
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
     results = redis.get(query)
     if results:
         print(results)
@@ -120,7 +126,7 @@ async def get_icon(input: IconQueryCollectionWithData, temp_dir: str) -> str:
             retries = 4
             while retries:
                 try:
-                    results = await vector_store.asimilarity_search(query=query, k=20)        
+                    results = await vector_store.asimilarity_search(query=query, k=20)
                 except Exception as e:
                     print(f"Error while fetching icon: {e}")
                     retries -= 1
@@ -131,26 +137,25 @@ async def get_icon(input: IconQueryCollectionWithData, temp_dir: str) -> str:
             redis.set(query, [{"name": icon.metadata["name"]} for icon in results])
             icon = results[0].metadata["name"]
             print("Icon fetched from vector store")
-    icon_url = f"https://presenton-icons.s3.ap-south-1.amazonaws.com/bold/{icon}-bold.png"
+    icon_url = (
+        f"https://presenton-icons.s3.ap-south-1.amazonaws.com/bold/{icon}-bold.png"
+    )
     print(f"Response - Fetched Icon for {icon_url}")
 
-    icon_path = "assets/icons/placeholder.png"
-    if icon_url:
-        temp_path = temp_file_service.create_temp_file_path(
-            f"{str(uuid.uuid4())}.png", temp_dir
-        )
-        success = await download_file(icon_url, temp_path, {})
-        if success:
-            icon_path = temp_path
-
-    return icon_path
+    success = await download_file(icon_url, output_path, {})
+    if not success:
+        with open(output_path, "wb") as f_a:
+            with open("assets/icons/placeholder.png", "rb") as f_b:
+                f_a.write(f_b.read())
 
 
 async def get_icons(
     query: str, page: int, limit: int, category: Optional[IconCategoryEnum] = None
 ) -> List[str]:
     # Get more results than needed to have a buffer for pagination
-    fetch_limit = max(20, page * limit)  # Fetch at least 20 or whatever is needed for current page
+    fetch_limit = max(
+        20, page * limit
+    )  # Fetch at least 20 or whatever is needed for current page
     results = redis.get(query)
     print(results)
     if results:
@@ -158,17 +163,17 @@ async def get_icons(
         print("Icon fetched from redis")
     else:
         results = await vector_store.asimilarity_search(query=query, k=fetch_limit)
-        results = [{'name': result.metadata['name']} for result in results]
+        results = [{"name": result.metadata["name"]} for result in results]
         redis.set(query, results)
         print("Icon fetched from vector store")
-    
+
     # Calculate start and end indices for pagination
     start_idx = (page - 1) * limit
     end_idx = start_idx + limit
-    
+
     # Slice the results according to pagination parameters
     paginated_results = results[start_idx:end_idx]
-    
+
     icons = [
         f"https://presenton-icons.s3.ap-south-1.amazonaws.com/bold/{result['name']}-bold.png"
         for result in paginated_results

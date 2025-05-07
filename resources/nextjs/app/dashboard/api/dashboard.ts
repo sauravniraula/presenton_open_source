@@ -21,7 +21,7 @@ export class DashboardApi {
     // static BASE_URL = "https://api.presenton.ai";
     // static BASE_URL = "https://presentation-generator-fragrant-mountain-1643.fly.dev";
     //   static BASE_URL="https://presentation-generator-wandering-night-8649.fly.dev";
-    static BASE_URL = "http://localhost:48388";
+    static BASE_URL = "http://localhost:8000";
     static async getPresentations(user_id: string): Promise<PresentationResponse[]> {
         try {
             const response = await fetch(`${DashboardApi.BASE_URL}/ppt/user_presentations?user_id=${user_id}`, {

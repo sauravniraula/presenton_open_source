@@ -1,1 +1,0 @@
-CREATE POLICY "All Access" ON "public"."v7-tables" USING (true);
