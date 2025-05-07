@@ -1,9 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Slide } from "../../types/slide";
-import {
-  getEmptySlideContent,
-  renderSlideContent,
-} from "../../components/slide_config";
+import { renderSlideContent } from "../../components/slide_config";
 import { Loader2, PlusIcon, Trash2, WandSparkles } from "lucide-react";
 import {
   Popover,
@@ -19,6 +16,7 @@ import { RootState } from "@/store/store";
 import { useDispatch, useSelector } from "react-redux";
 import { addSlide, updateSlide } from "@/store/slices/presentationGeneration";
 import NewSlide from "../../components/slide_layouts/NewSlide";
+import { getEmptySlideContent } from "../../utils/NewSlideContent";
 
 interface SlideContentProps {
   slide: Slide;

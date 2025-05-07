@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { getPercentage, ICON_LIST, IconMapper } from "../slide_config";
+
 import {
   Sheet,
   SheetContent,
@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { useDispatch, useSelector } from "react-redux";
 import { updateInfographicsChart } from "@/store/slices/presentationGeneration";
 import { RootState } from "@/store/store";
+import { getPercentage, ICON_LIST, IconMapper } from "../../utils/IconList";
 
 type Chart = {
   chart_type: string;

@@ -217,7 +217,6 @@ const ImageEditor = ({
       const presentation_id = path.split("/")[2];
 
       const response = await PresentationGenerationApi.generateImage({
-        user_id: "user?.id!",
         presentation_id,
         prompt: {
           theme_prompt: ThemeImagePrompt[currentTheme],
@@ -242,7 +241,6 @@ const ImageEditor = ({
       setError(null);
 
       const response = await PresentationGenerationApi.imageSearch({
-        user_id: "user?.id!",
         presentation_id: presentation_id,
         query: searchQuery,
         page: 1,
@@ -310,7 +308,7 @@ const ImageEditor = ({
   const getImageUrl = (src: string | null) => {
     if (!src) return "";
     return src.startsWith("user")
-      ? `${PresentationGenerationApi.BUCKET_URL}${src}`
+      ? `${PresentationGenerationApi.BASE_URL}${src}`
       : src;
   };
 
@@ -588,7 +586,7 @@ const ImageEditor = ({
                               src={
                                 image
                                   ? image.startsWith("user")
-                                    ? `${PresentationGenerationApi.BUCKET_URL}${image}`
+                                    ? `${PresentationGenerationApi.BASE_URL}${image}`
                                     : image
                                   : ""
                               }

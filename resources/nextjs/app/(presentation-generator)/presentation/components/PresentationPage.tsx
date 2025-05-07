@@ -10,7 +10,7 @@ import { DashboardApi } from "@/app/dashboard/api/dashboard";
 import SidePanel from "../components/SidePanel";
 import { Slide } from "../../types/slide";
 import SlideContent from "../components/SlideContent";
-import { getEmptySlideContent } from "../../components/slide_config";
+
 import {
   addSlide,
   deletePresentationSlide,
@@ -30,6 +30,7 @@ import { Button } from "@/components/ui/button";
 import { AlertCircle } from "lucide-react";
 import { FooterProvider } from "../../context/footerContext";
 import Help from "./Help";
+import { getEmptySlideContent } from "../../utils/NewSlideContent";
 
 // Custom debounce function
 function useDebounce<T extends (...args: any[]) => void>(
@@ -64,7 +65,6 @@ const PresentationPage = ({ presentation_id }: { presentation_id: string }) => {
     (state: RootState) => state.presentationGeneration
   );
   const [error, setError] = useState(false);
-  const [showFeedback, setShowFeedback] = useState(true);
   const router = useRouter();
   const searchParams = useSearchParams();
   const isPresentMode = searchParams.get("mode") === "present";
@@ -258,10 +258,7 @@ const PresentationPage = ({ presentation_id }: { presentation_id: string }) => {
   // Function to fetch the user slides
   const fetchUserSlides = async () => {
     try {
-      const data = await DashboardApi.getPresentation(
-        presentation_id,
-        " user?.id!"
-      );
+      const data = await DashboardApi.getPresentation(presentation_id);
       if (data) {
         dispatch(
           setThemeColors({
@@ -386,6 +383,7 @@ const PresentationPage = ({ presentation_id }: { presentation_id: string }) => {
         onFullscreenToggle={toggleFullscreen}
         onExit={handlePresentExit}
         onSlideChange={handleSlideChange}
+        language={presentationData?.presentation?.language || "English"}
       />
     );
   }

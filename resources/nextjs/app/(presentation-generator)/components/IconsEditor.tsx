@@ -71,7 +71,6 @@ const IconsEditor = ({
 
     try {
       const data = await PresentationGenerationApi.searchIcons({
-        user_id: "user?.id!",
         presentation_id,
         query,
         page: 1,
@@ -115,7 +114,7 @@ const IconsEditor = ({
           <img
             src={
               icon.startsWith("user")
-                ? `${PresentationGenerationApi.BUCKET_URL}${icon}`
+                ? `${PresentationGenerationApi.BASE_URL}${icon}`
                 : icon
             }
             alt="slide icon"
