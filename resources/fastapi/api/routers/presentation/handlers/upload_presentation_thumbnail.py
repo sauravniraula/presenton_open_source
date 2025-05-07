@@ -8,6 +8,7 @@ from api.services.logging import LoggingService
 from api.services.instances import temp_file_service
 from api.sql_models import PresentationSqlModel
 from api.services.database import sql_session
+from api.utils import get_presentation_dir
 
 
 class UploadPresentationThumbnailHandler:
@@ -19,7 +20,7 @@ class UploadPresentationThumbnailHandler:
         self.session = str(uuid.uuid4())
         self.temp_dir = temp_file_service.create_temp_dir(self.session)
 
-        self.presentation_dir = temp_file_service.create_temp_dir(self.presentation_id)
+        self.presentation_dir = get_presentation_dir(self.presentation_id)
 
     def __del__(self):
         temp_file_service.cleanup_temp_dir(self.temp_dir)

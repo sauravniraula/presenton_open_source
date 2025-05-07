@@ -1,3 +1,4 @@
+import os
 import uuid
 
 from api.models import LogMetadata
@@ -10,6 +11,7 @@ from api.routers.presentation.models import (
 )
 from api.services.instances import temp_file_service
 from api.services.logging import LoggingService
+from api.utils import get_presentation_dir
 from image_processor.image_from_pptx import get_pdf_from_pptx
 from ppt_generator.pptx_presentation_creator import PptxPresentationCreator
 
@@ -23,9 +25,7 @@ class ExportAsPDFHandler(FetchPresentationAssetsMixin):
         self.session = str(uuid.uuid4())
         self.temp_dir = temp_file_service.create_temp_dir(self.session)
 
-        self.presentation_dir = temp_file_service.create_temp_dir(
-            self.data.presentation_id
-        )
+        self.presentation_dir = get_presentation_dir(self.data.presentation_id)
 
     def __del__(self):
         temp_file_service.cleanup_temp_dir(self.temp_dir)
@@ -38,9 +38,8 @@ class ExportAsPDFHandler(FetchPresentationAssetsMixin):
 
         await self.fetch_presentation_assets()
 
-        ppt_path = temp_file_service.create_temp_file_path(
-            self.presentation_dir, str(uuid.uuid4()).join(".pptx")
-        )
+        ppt_path = os.path.join(self.presentation_dir, "presentation.pptx")
+
         ppt_creator = PptxPresentationCreator(self.data.pptx_model, self.temp_dir)
         ppt_creator.create_ppt()
         ppt_creator.save(ppt_path)

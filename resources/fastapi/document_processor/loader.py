@@ -23,9 +23,8 @@ WORD_TYPES = [
 ]
 SPREADSHEET_TYPES = ["text/csv", "application/csv"]
 UPLOAD_ACCEPTED_DOCUMENTS = (
-    PDF_MIME_TYPES + TEXT_MIME_TYPES + POWERPOINT_TYPES + WORD_TYPES + SPREADSHEET_TYPES
+    PDF_MIME_TYPES + TEXT_MIME_TYPES + POWERPOINT_TYPES + WORD_TYPES
 )
-DECOMPOSE_ACCEPTED_DOCUMENTS = PDF_MIME_TYPES + TEXT_MIME_TYPES
 
 
 class DocumentsLoader:
@@ -71,19 +70,20 @@ class DocumentsLoader:
                     status_code=404, detail=f"File {file_path} not found"
                 )
 
-            mime_type = mimetypes.guess_type(file_path)[0]
-            if mime_type not in DECOMPOSE_ACCEPTED_DOCUMENTS:
-                continue
-
             docs = []
             imgs = []
+
+            mime_type = mimetypes.guess_type(file_path)[0]
             if mime_type in PDF_MIME_TYPES:
                 docs, imgs = await self.load_pdf(
                     file_path, load_markdown, load_images, temp_dir
                 )
-
             elif mime_type in TEXT_MIME_TYPES:
                 docs = self.load_text(file_path)
+            elif mime_type in POWERPOINT_TYPES:
+                docs = self.load_powerpoint(file_path)
+            elif mime_type in WORD_TYPES:
+                docs = self.load_msword(file_path)
 
             documents.extend(docs)
             images.append(imgs)

@@ -1,4 +1,5 @@
 import asyncio
+import os
 import traceback
 from typing import List, Optional
 
@@ -8,6 +9,12 @@ from fastapi.responses import StreamingResponse
 
 from api.models import LogMetadata
 from api.services.logging import LoggingService
+
+
+def get_presentation_dir(presentation_id: str) -> str:
+    presentation_dir = os.path.join(os.getenv("APP_DATA_DIRECTORY"), presentation_id)
+    os.makedirs(presentation_dir, exist_ok=True)
+    return presentation_dir
 
 
 def replace_file_name(old_name: str, new_name: str) -> str:

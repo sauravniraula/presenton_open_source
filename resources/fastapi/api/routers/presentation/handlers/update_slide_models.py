@@ -11,7 +11,7 @@ from api.routers.presentation.models import (
 )
 from api.services.logging import LoggingService
 from api.sql_models import PresentationSqlModel, SlideSqlModel
-from api.utils import download_files, replace_file_name
+from api.utils import download_files, get_presentation_dir, replace_file_name
 from api.services.database import sql_session
 from api.services.instances import temp_file_service
 
@@ -24,7 +24,7 @@ class UpdateSlideModelsHandler:
         self.session = str(uuid.uuid4())
         self.temp_dir = temp_file_service.create_temp_dir()
 
-        self.presentation_dir = temp_file_service.create_temp_dir(self.presentation_id)
+        self.presentation_dir = get_presentation_dir(self.presentation_id)
 
     def __del__(self):
         temp_file_service.cleanup_temp_dir(self.temp_dir)
@@ -57,12 +57,12 @@ class UpdateSlideModelsHandler:
                         image_name = replace_file_name(
                             os.path.basename(parsed_url), str(uuid.uuid4())
                         )
-                        asset_cloud_path = (
+                        asset_path = (
                             f"{self.presentation_dir}/{asset_type}/{image_name}"
                         )
-                        assets_local_paths.append(asset_cloud_path)
+                        assets_local_paths.append(asset_path)
                         assets_download_links.append(asset)
-                        getattr(new_slide, asset_type)[i] = asset_cloud_path
+                        getattr(new_slide, asset_type)[i] = asset_path
 
         if assets_download_links:
             await download_files(assets_download_links, assets_local_paths)

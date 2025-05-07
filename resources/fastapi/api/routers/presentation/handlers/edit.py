@@ -10,6 +10,7 @@ from api.routers.presentation.models import (
 )
 from api.services.instances import temp_file_service
 from api.services.logging import LoggingService
+from api.utils import get_presentation_dir
 from image_processor.generator import generate_image, get_icon
 from ppt_generator.models.slide_model import SlideModel
 from ppt_generator.slide_generator import (
@@ -32,7 +33,7 @@ class PresentationEditHandler:
         self.session = str(uuid.uuid4())
         self.temp_dir = temp_file_service.create_temp_dir(self.session)
 
-        self.presentation_dir = temp_file_service.create_temp_dir(self.presentation_id)
+        self.presentation_dir = get_presentation_dir(self.presentation_id)
 
     def __del__(self):
         temp_file_service.cleanup_temp_dir(self.temp_dir)

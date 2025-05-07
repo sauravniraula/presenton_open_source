@@ -17,6 +17,7 @@ from api.routers.presentation.models import (
 )
 from api.services.logging import LoggingService
 from api.sql_models import KeyValueSqlModel, PresentationSqlModel, SlideSqlModel
+from api.utils import get_presentation_dir
 from image_processor.generator import generate_image, get_icon
 from ppt_generator.models.llm_models import LLMPresentationModel
 from ppt_generator.models.slide_model import SlideModel
@@ -24,7 +25,6 @@ from ppt_generator.slide_model_utils import SlideModelUtils
 from api.services.instances import temp_file_service
 
 from api.routers.presentation.prompts import CREATE_PRESENTATION_PROMPT
-from anthropic import AsyncAnthropic
 from google import genai
 from google.genai import types
 from api.services.database import sql_session
@@ -36,11 +36,11 @@ class PresentationGenerateStreamHandler:
         self.session = session
         self.presentation_id = presentation_id
         self.client = OpenAI()
-        self.anthropic_client = AsyncAnthropic()
         self.gemini_client = genai.Client()
 
         self.temp_dir = temp_file_service.create_temp_dir(self.session)
-        self.presentation_dir = temp_file_service.create_temp_dir(self.presentation_id)
+
+        self.presentation_dir = get_presentation_dir(self.presentation_id)
 
     def __del__(self):
         temp_file_service.cleanup_temp_dir(self.temp_dir)

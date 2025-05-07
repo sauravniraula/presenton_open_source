@@ -6,6 +6,7 @@ from api.routers.presentation.models import (
 )
 from api.services.logging import LoggingService
 from api.services.instances import temp_file_service
+from api.utils import get_presentation_dir
 from image_processor.generator import generate_image
 
 
@@ -17,9 +18,7 @@ class GenerateImageHandler:
         self.session = str(uuid.uuid4())
         self.temp_dir = temp_file_service.create_temp_dir(self.session)
 
-        self.presentation_dir = temp_file_service.create_temp_dir(
-            self.data.presentation_id
-        )
+        self.presentation_dir = get_presentation_dir(self.data.presentation_id)
 
     async def post(self, logging_service: LoggingService, log_metadata: LogMetadata):
 
@@ -29,7 +28,7 @@ class GenerateImageHandler:
         )
 
         image_path = temp_file_service.create_temp_file_path(
-            self.presentation_dir, "images", str(uuid.uuid4()).join(".jpg")
+            self.presentation_dir, "generated_images", str(uuid.uuid4()) + ".jpg"
         )
         await generate_image(self.data.prompt, image_path)
 
