@@ -1,6 +1,7 @@
 from enum import Enum
 from pydantic import BaseModel
 
+
 # """
 # 1. contains title, description and an image.
 # 2. contains title and list of items.

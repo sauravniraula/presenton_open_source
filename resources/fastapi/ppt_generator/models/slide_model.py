@@ -14,18 +14,6 @@ from ppt_generator.models.content_type_models import (
     Type7Content,
     Type8Content,
     Type9Content,
-    Type10Content,
-    Type11Content,
-)
-from ppt_generator.models.base_content_type_models import (
-    BaseType1Content,
-    BaseType2Content,
-    BaseType3Content,
-    BaseType4Content,
-    BaseType5Content,
-    BaseType6Content,
-    BaseType7Content,
-    BaseType8Content,
 )
 
 
@@ -47,8 +35,6 @@ class SlideModel(BaseModel):
         | Type7Content
         | Type8Content
         | Type9Content
-        | Type10Content
-        | Type11Content
     )
     properties: Optional[dict] = None
 
@@ -79,24 +65,3 @@ class SlideModel(BaseModel):
         if not hasattr(self.content, "icon_queries"):
             return 0
         return len(self.content.icon_queries)
-
-
-class BaseSlideModel(BaseModel):
-    type: SlideType
-    content: (
-        BaseType1Content
-        | BaseType2Content
-        | BaseType3Content
-        | BaseType4Content
-        | BaseType5Content
-        | BaseType6Content
-        | BaseType7Content
-        | BaseType8Content
-    )
-
-
-class BasePresentation(BaseModel):
-    title: str
-    n_slides: int
-    titles: list[str]
-    slides: list[BaseSlideModel]

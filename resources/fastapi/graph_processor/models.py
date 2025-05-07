@@ -8,13 +8,6 @@ from pydantic import Field, model_validator
 from graph_processor.utils import clip_text
 
 
-class DetectedObjectModel(BaseModel):
-    class_id: int
-    class_name: str
-    confidence: float
-    bbox: List[float]
-
-
 class PointModel(BaseModel):
     x: float
     y: float

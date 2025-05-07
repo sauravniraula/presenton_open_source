@@ -18,7 +18,8 @@ from api.routers.presentation.models import (
 from api.services.logging import LoggingService
 from api.sql_models import KeyValueSqlModel, PresentationSqlModel, SlideSqlModel
 from image_processor.generator import generate_image, get_icon
-from ppt_generator.models.slide_model import BasePresentation, SlideModel
+from ppt_generator.models.llm_models import LLMPresentationModel
+from ppt_generator.models.slide_model import SlideModel
 from ppt_generator.slide_model_utils import SlideModelUtils
 from api.services.instances import temp_file_service
 
@@ -183,7 +184,7 @@ class PresentationGenerateStreamHandler:
         language: str,
         summary: str,
     ):
-        schema = BasePresentation.model_json_schema()
+        schema = LLMPresentationModel.model_json_schema()
 
         system_prompt = f"{CREATE_PRESENTATION_PROMPT} -|0|--|0|- Follow this schema while giving out response: {schema}. Make description short and obey the character limits. Output should be in JSON format. Give out only JSON, nothing else."
         system_prompt = system_prompt.replace("-|0|-", "\n")
