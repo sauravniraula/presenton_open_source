@@ -1,5 +1,5 @@
 from typing import List, Optional
-from ppt_generator.models.other_models import PresentationTheme, SlideType
+from ppt_generator.models.other_models import SlideType
 from ppt_generator.models.query_and_prompt_models import (
     IconCategoryEnum,
     IconFrameEnum,
@@ -36,8 +36,9 @@ THEME_PROMPTS = {
     "dark-pink": "inspirational and creative with a youthful and playful tone, featuring light, pastel colors including blue, pink, and purple, all blending in a vibrant gradient",
     "faint-yellow": "Fresh young creatively vibrant style, utilizing a playful mixture of light colors like orange, salmon, and pastel purple, all set against a warm gradient.",
     "dark": "Luxurious and futuristic with a simple, clean design. Professional yet elegant using a color scheme of dark, black, and high contrast.",
-    "light": "Classy and modern with a corporate and minimalist touch. Tone is serious yet elegant, using a palette of light, white, and cool gray colors."
+    "light": "Classy and modern with a corporate and minimalist touch. Tone is serious yet elegant, using a palette of light, white, and cool gray colors.",
 }
+
 
 class SlideModelUtils:
     def __init__(self, theme: Optional[dict], model: SlideModel):
@@ -47,14 +48,16 @@ class SlideModelUtils:
         self.content = model.content
 
     def get_image_prompts(self) -> List[ImagePromptWithAspectRatio]:
-        theme_prompt = THEME_PROMPTS.get(self.theme["name"], "")
+        theme_prompt = THEME_PROMPTS.get(self.theme["name"], "") if self.theme else ""
         if self.type in SLIDE_WITHOUT_IMAGE:
             return []
 
         if self.type is SlideType.type1:
             return [
                 ImagePromptWithAspectRatio(
-                    image_prompt=each, aspect_ratio=ImageAspectRatio.r_1_1, theme_prompt=theme_prompt
+                    image_prompt=each,
+                    aspect_ratio=ImageAspectRatio.r_1_1,
+                    theme_prompt=theme_prompt,
                 )
                 for each in self.content.image_prompts
             ]
@@ -62,7 +65,9 @@ class SlideModelUtils:
         elif self.type is SlideType.type3:
             return [
                 ImagePromptWithAspectRatio(
-                    image_prompt=each, aspect_ratio=ImageAspectRatio.r_2_3, theme_prompt=theme_prompt
+                    image_prompt=each,
+                    aspect_ratio=ImageAspectRatio.r_2_3,
+                    theme_prompt=theme_prompt,
                 )
                 for each in self.content.image_prompts
             ]
@@ -74,7 +79,9 @@ class SlideModelUtils:
             )
             return [
                 ImagePromptWithAspectRatio(
-                    image_prompt=each, aspect_ratio=aspect_ratio, theme_prompt=theme_prompt
+                    image_prompt=each,
+                    aspect_ratio=aspect_ratio,
+                    theme_prompt=theme_prompt,
                 )
                 for each in self.content.image_prompts
             ]

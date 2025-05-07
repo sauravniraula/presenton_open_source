@@ -1,20 +1,15 @@
 import mimetypes
-import threading
+import os
 from typing import List, Tuple
-from langchain_community.document_loaders import PyMuPDFLoader, TextLoader
+from fastapi import HTTPException
+from langchain_community.document_loaders import TextLoader
 from langchain_core.documents import Document
 from langchain_text_splitters import CharacterTextSplitter, MarkdownTextSplitter
 from pptx import Presentation
 from docx import Document as DocxDocument
 import fitz
-import aiohttp
-import asyncio
-import base64
-import os
-import subprocess
+import pymupdf4llm
 
-
-from document_processor.file_to_markdown import generate_markdown_from_file
 from image_processor.utils import get_page_images_from_pdf_async
 
 PDF_MIME_TYPES = ["application/pdf"]
@@ -28,11 +23,9 @@ WORD_TYPES = [
 ]
 SPREADSHEET_TYPES = ["text/csv", "application/csv"]
 UPLOAD_ACCEPTED_DOCUMENTS = (
-    PDF_MIME_TYPES + TEXT_MIME_TYPES + POWERPOINT_TYPES + WORD_TYPES + SPREADSHEET_TYPES
+    PDF_MIME_TYPES + TEXT_MIME_TYPES + POWERPOINT_TYPES + WORD_TYPES
 )
-DECOMPOSE_ACCEPTED_DOCUMENTS = (
-    PDF_MIME_TYPES + TEXT_MIME_TYPES
-)
+
 
 class DocumentsLoader:
 
@@ -60,32 +53,37 @@ class DocumentsLoader:
     def images(self):
         return self._images
 
-    async def  load_documents(
+    async def load_documents(
         self,
         temp_dir: str,
         split_documents: bool = False,
         load_markdown: bool = True,
         load_images: bool = False,
-        presigned_file_urls: List[str] = None,
     ):
         documents: List[Document] = []
         images: List[str] = []
 
         splitted_documents: List[Document] = []
-        for file_path, presigned_file_url in zip(self._document_paths, presigned_file_urls):
-            mime_type = mimetypes.guess_type(file_path)[0]
-            if mime_type not in DECOMPOSE_ACCEPTED_DOCUMENTS:
-                continue
+        for file_path in self._document_paths:
+            if not os.path.exists(file_path):
+                raise HTTPException(
+                    status_code=404, detail=f"File {file_path} not found"
+                )
 
             docs = []
             imgs = []
+
+            mime_type = mimetypes.guess_type(file_path)[0]
             if mime_type in PDF_MIME_TYPES:
                 docs, imgs = await self.load_pdf(
-                    file_path, load_markdown, load_images, temp_dir, presigned_file_url
+                    file_path, load_markdown, load_images, temp_dir
                 )
-
             elif mime_type in TEXT_MIME_TYPES:
                 docs = self.load_text(file_path)
+            elif mime_type in POWERPOINT_TYPES:
+                docs = self.load_powerpoint(file_path)
+            elif mime_type in WORD_TYPES:
+                docs = self.load_msword(file_path)
 
             documents.extend(docs)
             images.append(imgs)
@@ -97,20 +95,20 @@ class DocumentsLoader:
         self._splitted_documents = splitted_documents
         self._images = images
 
-    
-
     def split_documents(self, documents: List[Document], mime_type):
-        # if mime_type in PDF_MIME_TYPES:
-        #     return self._markdown_splitter.split_documents(documents)
         return self._text_splitter.split_documents(documents)
- 
+
     def clip_longer_documents(self, documents: List[Document], clip_after: int = 1200):
         for document in documents:
             document.page_content = document.page_content[:clip_after]
         return documents
 
     async def load_pdf(
-        self, file_path: str, load_markdown: bool, load_images: bool, temp_dir: str, presigned_file_url: str
+        self,
+        file_path: str,
+        load_markdown: bool,
+        load_images: bool,
+        temp_dir: str,
     ) -> Tuple[List[Document], List[str]]:
         image_paths = []
         documents: List[Document] = []
@@ -125,46 +123,19 @@ class DocumentsLoader:
                 "author": doc.metadata.get("author", ""),
                 "subject": doc.metadata.get("subject", ""),
             }
-            # if total_pages > 10:
-            import time
-            t1 = time.time()
-            full_text = await self.decompose_pdf_to_markdown(total_pages, presigned_file_url)
-            print(f"Time Taken for pdf to md: {time.time() - t1}")
+            full_text = await self.decompose_pdf_to_markdown(file_path)
             documents.append(
                 Document(page_content=full_text.strip(), metadata=metadata)
             )
-            # else:
-            #     markdown = generate_markdown_from_file(file_path)
-            #     documents.append(
-            #         Document(page_content=markdown.markdown, metadata=metadata)
-            #     )
 
         if load_images:
             image_paths = await get_page_images_from_pdf_async(file_path, temp_dir)
 
         return documents, image_paths
 
-    async def decompose_pdf_to_markdown(self,total_pages: int, source_url: str) -> str:
-        async def fetch_markdown(session, pages, headers):
-            params = {'source': source_url, 'pages': ','.join(map(str, pages))}
-            async with session.get('https://surajbeston--pdf-to-md-pymupdfllm-decompose.modal.run', params=params, headers=headers) as response:
-                data = await response.json()
-                return data['data']
-
-        async with aiohttp.ClientSession() as session:
-            proxy_auth = base64.b64encode(f"{os.getenv('MODAL_ID')}:{os.getenv('MODAL_SECRET')}".encode()).decode()
-            headers = {"Proxy-Authorization": f"Basic {proxy_auth}"}
-            tasks = []
-            batch_size = 5
-            for start_page in range(0, total_pages, batch_size):
-                end_page = min(start_page + batch_size, total_pages)
-                pages = list(range(start_page, end_page))
-                tasks.append(fetch_markdown(session, pages, headers))
-
-            results = await asyncio.gather(*tasks)
-
-        return '\n'.join(results)
-    
+    async def decompose_pdf_to_markdown(self, document_path: str) -> str:
+        md_text = pymupdf4llm.to_markdown(document_path)
+        return md_text
 
     def load_text(self, file_path: str) -> List[Document]:
         loader = TextLoader(file_path)

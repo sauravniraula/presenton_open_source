@@ -1,6 +1,5 @@
 import asyncio
 import uuid
-from PIL import Image, ImageDraw, ImageChops
 from pdf2image import convert_from_path
 import pymupdf
 from api.services.instances import temp_file_service

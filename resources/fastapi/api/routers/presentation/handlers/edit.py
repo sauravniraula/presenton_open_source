@@ -3,13 +3,14 @@ import os
 from typing import List, Tuple
 import uuid
 
-from fastapi import HTTPException
+from sqlmodel import select
 from api.models import LogMetadata
 from api.routers.presentation.models import (
     EditPresentationSlideRequest,
 )
-from api.services.instances import supabase_service, temp_file_service, s3_service
+from api.services.instances import temp_file_service
 from api.services.logging import LoggingService
+from api.utils import get_presentation_dir
 from image_processor.generator import generate_image, get_icon
 from ppt_generator.models.slide_model import SlideModel
 from ppt_generator.slide_generator import (
@@ -17,12 +18,13 @@ from ppt_generator.slide_generator import (
     get_slide_type_from_prompt,
 )
 from ppt_generator.slide_model_utils import SlideModelUtils
+from api.sql_models import PresentationSqlModel, SlideSqlModel
+from api.services.database import sql_session
 
 
 class PresentationEditHandler:
-    def __init__(self, data: EditPresentationSlideRequest, user_id: str):
+    def __init__(self, data: EditPresentationSlideRequest):
         self.data = data
-        self.user_id = user_id
         self.presentation_id = data.presentation_id
 
         self.slide_index = data.index
@@ -30,6 +32,8 @@ class PresentationEditHandler:
 
         self.session = str(uuid.uuid4())
         self.temp_dir = temp_file_service.create_temp_dir(self.session)
+
+        self.presentation_dir = get_presentation_dir(self.presentation_id)
 
     def __del__(self):
         temp_file_service.cleanup_temp_dir(self.temp_dir)
@@ -40,16 +44,12 @@ class PresentationEditHandler:
             extra=log_metadata.model_dump(),
         )
 
-        presentation = await supabase_service.get_presentation(self.presentation_id)
+        presentation = sql_session.get(PresentationSqlModel, self.presentation_id)
 
-        if presentation.user_id != self.user_id:
-            raise HTTPException(
-                status_code=403, detail="You are not allowed to edit this presentation"
-            )
-
-        slide_to_edit = await supabase_service.get_slide_at_index(
-            self.presentation_id, self.slide_index
-        )
+        slide_to_edit = sql_session.exec(
+            select(SlideSqlModel).where(SlideSqlModel.index == self.slide_index)
+        ).first()
+        slide_to_edit = SlideModel.from_dict(slide_to_edit.model_dump(mode="json"))
 
         new_slide_type = await get_slide_type_from_prompt(self.prompt, slide_to_edit)
 
@@ -80,21 +80,19 @@ class PresentationEditHandler:
                 new_slide_model,
             )
         )
-        print(images_to_generate)
-        print(edited_content)
         new_image_paths = slide_to_edit.images or []
         new_icon_paths = slide_to_edit.icons or []
         images_count = len(new_image_paths)
         icons_count = len(new_icon_paths)
         for index in images_to_generate:
-            file_key = f"user-{self.user_id}/{self.presentation_id}/images/{str(uuid.uuid4())}.jpg"
+            file_key = f"{self.presentation_dir}/images/{str(uuid.uuid4())}.jpg"
             if index < images_count:
                 new_image_paths.pop(index)
                 new_image_paths.insert(index, file_key)
             else:
                 new_image_paths.append(file_key)
         for index in icons_to_generate:
-            file_key = f"user-{self.user_id}/{self.presentation_id}/icons/{str(uuid.uuid4())}.png"
+            file_key = f"{self.presentation_dir}/icons/{str(uuid.uuid4())}.png"
             if index < icons_count:
                 new_icon_paths.pop(index)
                 new_icon_paths.insert(index, file_key)
@@ -109,7 +107,8 @@ class PresentationEditHandler:
         # Generate and Delete Images and Icons
         objects_to_delete = [*images_to_delete, *icons_to_delete]
         if objects_to_delete:
-            s3_service.delete_public_files(objects_to_delete)
+            for each in objects_to_delete:
+                os.remove(each)
 
         new_image_prompts = {}
         new_icon_queries = {}
@@ -130,14 +129,16 @@ class PresentationEditHandler:
                 ]
 
         coroutines = [
-            generate_image(each, self.temp_dir) for each in new_image_prompts.values()
-        ] + [get_icon(each, self.temp_dir) for each in new_icon_queries.values()]
+            generate_image(value, key) for key, value in new_image_prompts.items()
+        ] + [get_icon(value, key) for key, value in new_icon_queries.items()]
 
-        image_and_icon_paths = await asyncio.gather(*coroutines)
-        combined_cloud_paths = [*new_image_prompts.keys(), *new_icon_queries.keys()]
+        await asyncio.gather(*coroutines)
 
-        await s3_service.upload_public_files(combined_cloud_paths, image_and_icon_paths)
-        await supabase_service.upsert_slide(new_slide_model.to_create_dict())
+        slide_to_edit.images = new_slide_model.images
+        slide_to_edit.icons = new_slide_model.icons
+        slide_to_edit.content = new_slide_model.content
+        slide_to_edit.type = new_slide_type.slide_type
+        sql_session.commit()
 
         logging_service.logger.info(
             logging_service.message(new_slide_model.model_dump(mode="json")),

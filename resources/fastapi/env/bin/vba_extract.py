@@ -1,4 +1,4 @@
-#!/home/viristo/prog/presentation_generator/presenton_open_source/servers/fastapi/env/bin/python3
+#!/home/viristo/prog/presentation_generator/presenton_open_source/resources/fastapi/env/bin/python
 
 ##############################################################################
 #

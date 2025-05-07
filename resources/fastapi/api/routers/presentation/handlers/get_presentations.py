@@ -1,24 +1,16 @@
+from sqlmodel import select
 from api.models import LogMetadata
-from api.services.instances import supabase_service
 from api.services.logging import LoggingService
-
+from api.sql_models import PresentationSqlModel
+from api.services.database import sql_session
 
 
 class GetPresentationsHandler:
 
-    def __init__(self, user_id: str):
-        self.user_id = user_id
-
     async def get(self, logging_service: LoggingService, log_metadata: LogMetadata):
 
-        logging_service.logger.info(
-            logging_service.message({"user": self.user_id}),
-            extra=log_metadata.model_dump(),
-        )
+        presentations = sql_session.exec(select(PresentationSqlModel)).all()
 
-        presentations = await supabase_service.get_presentations_from_user_id(
-            self.user_id
-        )
         for each in presentations:
             each.data = None
             each.summary = None

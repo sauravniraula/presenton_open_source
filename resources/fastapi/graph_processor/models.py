@@ -2,18 +2,10 @@ from enum import Enum
 import json
 from typing import List, Optional
 import uuid
-from langchain_text_splitters import markdown
 from openai import BaseModel
 from pydantic import Field, model_validator
 
 from graph_processor.utils import clip_text
-
-
-class DetectedObjectModel(BaseModel):
-    class_id: int
-    class_name: str
-    confidence: float
-    bbox: List[float]
 
 
 class PointModel(BaseModel):
@@ -30,7 +22,9 @@ class PointWithRadius(PointModel):
 
 class BarSeriesModel(BaseModel):
     name: str
-    data: List[float] = Field(description="Only numbers should be given out in data. Don't include text/string in data.")
+    data: List[float] = Field(
+        description="Only numbers should be given out in data. Don't include text/string in data."
+    )
 
     def get_name(self) -> str:
         return clip_text(self.name)
@@ -38,7 +32,7 @@ class BarSeriesModel(BaseModel):
 
 class ScatterSeriesModel(BaseModel):
     name: str
-    points: List[PointModel] 
+    points: List[PointModel]
 
     def get_name(self) -> str:
         return clip_text(self.name)
@@ -54,7 +48,9 @@ class BubbleSeriesModel(BaseModel):
 
 class LineSeriesModel(BaseModel):
     name: str
-    data: List[float] = Field(description="Only numbers should be given out in data. Don't include text/string in data.")
+    data: List[float] = Field(
+        description="Only numbers should be given out in data. Don't include text/string in data."
+    )
 
     def get_name(self) -> str:
         return clip_text(self.name)
@@ -66,7 +62,9 @@ class PieChartSeriesModel(BaseModel):
 
 class BarGraphDataModel(BaseModel):
     categories: List[str]
-    series: List[BarSeriesModel] = Field( description="There should be no more than 3 series")
+    series: List[BarSeriesModel] = Field(
+        description="There should be no more than 3 series"
+    )
 
     def get_categories(self) -> List[str]:
         return [clip_text(category) for category in self.categories]
@@ -82,7 +80,9 @@ class BubbleChartDataModel(BaseModel):
 
 class LineChartDataModel(BaseModel):
     categories: List[str]
-    series: List[LineSeriesModel] = Field( description="There should be no more than 3 series")
+    series: List[LineSeriesModel] = Field(
+        description="There should be no more than 3 series"
+    )
 
     def get_categories(self) -> List[str]:
         return [clip_text(category) for category in self.categories]
@@ -102,6 +102,7 @@ class PieChartDataModel(BaseModel):
 
     def get_categories(self) -> List[str]:
         return [clip_text(category) for category in self.categories]
+
 
 class TableDataModel(BaseModel):
     categories: List[str]
@@ -126,7 +127,9 @@ class GraphModel(BaseModel):
     name: str
     type: GraphTypeEnum
     presentation: Optional[str] = None
-    unit: Optional[str] = Field(default="Unit of the data in the graph. Example: %, kg, million USD, tonnes, etc.")
+    unit: Optional[str] = Field(
+        default="Unit of the data in the graph. Example: %, kg, million USD, tonnes, etc."
+    )
     data: (
         PieChartDataModel
         | LineChartDataModel
@@ -180,25 +183,3 @@ GRAPH_TYPE_MAPPING = {
     GraphTypeEnum.line: LineChartDataModel,
     GraphTypeEnum.bubble: BubbleChartDataModel,
 }
-
-
-class TableMarkdownModel(BaseModel):
-    name: str = Field(description="Name of the table")
-    markdown: str = Field(description="Table content in markdown format")
-    description: str = Field(description="Description of table and its data")
-
-    def to_create_dict(self, presentation_id: Optional[str] = None) -> dict:
-        if presentation_id:
-            self.presentation = presentation_id
-
-        temp = self.model_dump(mode="json")
-        if not self.id:
-            del temp["id"]
-        return temp
-
-class TableMarkdownSourceModel(BaseModel):
-    name: str = Field(description="Name of the table")
-    markdown: str = Field(description="Table content in markdown format")
-    description: str = Field(description="description of table and its data")
-    source: str = Field(description="Table content in markdown format")
-    

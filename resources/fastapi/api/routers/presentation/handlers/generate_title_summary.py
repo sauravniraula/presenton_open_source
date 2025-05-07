@@ -2,9 +2,12 @@ import uuid
 
 from api.models import LogMetadata
 from api.routers.presentation.models import GenerateTitleRequest
-from api.services.instances import s3_service, temp_file_service, supabase_service
+from api.services.instances import temp_file_service
 from api.services.logging import LoggingService
+from api.sql_models import PresentationSqlModel
+from ppt_config_generator.models import PresentationTitlesModel
 from ppt_config_generator.ppt_title_summary_generator import generate_ppt_titles
+from api.services.database import sql_session
 
 
 class PresentationTitleSummaryGenerateHandler:
@@ -24,32 +27,22 @@ class PresentationTitleSummaryGenerateHandler:
             extra=log_metadata.model_dump(),
         )
 
-        presentation = await supabase_service.get_presentation(
-            self.data.presentation_id
-        )
-
-        presentation_titles = await generate_ppt_titles(
-            presentation.big_idea or presentation.prompt,
+        presentation = sql_session.get(PresentationSqlModel, self.data.presentation_id)
+        presentation_titles: PresentationTitlesModel = await generate_ppt_titles(
+            presentation.prompt,
             presentation.n_slides,
-            presentation.story or presentation.summary,
+            presentation.summary,
             presentation.language,
-            presentation.interpreted_report_content,
-            presentation.chapter_info.model_dump(mode="json") if presentation.chapter_info else None,
         )
 
-        presentation = await supabase_service.update_presentation(
-            {
-                "id": self.data.presentation_id,
-                "title": presentation_titles.presentation_title,
-                "titles": presentation_titles.titles,
-            }
-        )
+        presentation.title = presentation_titles.presentation_title
+        presentation.titles = presentation_titles.titles
+        sql_session.commit()
+        sql_session.refresh(presentation)
 
         logging_service.logger.info(
             logging_service.message(presentation.model_dump(mode="json")),
             extra=log_metadata.model_dump(),
         )
-        presentation.summary = None
-        presentation.interpreted_report_content = None
 
         return presentation

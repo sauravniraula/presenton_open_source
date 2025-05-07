@@ -1,6 +1,7 @@
 from api.models import LogMetadata
 from api.services.logging import LoggingService
-from api.services.instances import supabase_service, s3_service
+from api.services.database import sql_session
+from api.sql_models import SlideSqlModel
 
 
 class DeleteSlideHandler:
@@ -13,7 +14,6 @@ class DeleteSlideHandler:
             logging_service.message({"slide": self.id}),
             extra=log_metadata.model_dump(),
         )
-        await supabase_service.delete_slide(self.id)
-
-        s3_service.delete_private_directory(self.id)
-        s3_service.delete_public_directory(self.id)
+        slide = sql_session.get(SlideSqlModel, self.id)
+        sql_session.delete(slide)
+        sql_session.commit()

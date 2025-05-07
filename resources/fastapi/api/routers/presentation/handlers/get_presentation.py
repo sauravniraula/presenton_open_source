@@ -1,8 +1,11 @@
 import asyncio
+
+from sqlmodel import select
 from api.models import LogMetadata
 from api.routers.presentation.models import PresentationAndSlides
-from api.services.instances import supabase_service, s3_service
 from api.services.logging import LoggingService
+from api.sql_models import PresentationSqlModel, SlideSqlModel
+from api.services.database import sql_session
 
 
 class GetPresentationHandler:
@@ -18,16 +21,13 @@ class GetPresentationHandler:
         )
 
         coroutines = [
-            supabase_service.get_presentation(self.id),
-            supabase_service.get_slides(self.id),
-            supabase_service.get_graphs(self.id),
+            sql_session.get(PresentationSqlModel, self.id),
+            sql_session.exec(
+                select(SlideSqlModel).where(SlideSqlModel.presentation == self.id)
+            ),
         ]
 
-        presentation, slide_models, graphs = await asyncio.gather(*coroutines)
-
-        # for each in slide_models:
-        #     if each.graph_id:
-        #         each.graph = next(filter(lambda x: x.id == each.graph_id, graphs), None)
+        presentation, slide_models = await asyncio.gather(*coroutines)
 
         response = PresentationAndSlides(
             presentation=presentation, slides=slide_models

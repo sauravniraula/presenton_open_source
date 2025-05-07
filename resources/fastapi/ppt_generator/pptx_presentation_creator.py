@@ -1,13 +1,12 @@
 import os
 from typing import List, Optional
-from urllib.parse import unquote, urlparse
 import uuid
 from lxml import etree
 
 from pptx import Presentation
 from pptx.shapes.autoshape import Shape
 from pptx.slide import Slide
-from pptx.chart.data import ChartData, XyChartData, BubbleChartData
+from pptx.chart.data import ChartData, BubbleChartData
 from pptx.chart.chart import Chart
 from pptx.text.text import _Paragraph, TextFrame, Font, _Run
 from pptx.enum.chart import (
@@ -46,7 +45,6 @@ from ppt_generator.models.pptx_models import (
     PptxTextBoxModel,
     PptxTextRunModel,
 )
-from ppt_generator.slide_designs.colors import Colors
 from ppt_generator.utils import (
     clip_image,
     fit_image,
@@ -225,7 +223,7 @@ class PptxPresentationCreator:
                                     # size=self._theme.fonts.p2,
                                     size=16,
                                     bold=True,
-                                    color=Colors.white,
+                                    color="ffffff",
                                 )
                             ),
                         )

@@ -2,49 +2,7 @@ from enum import Enum
 from typing import List, Optional
 from pydantic import BaseModel, Field
 
-from ppt_generator.models.other_models import PresentationTheme, SlideType
-from graph_processor.models import GraphModel
-
-from ppt_generator.models.content_type_models import InfographicChartModel
-
-
-class StoryTypeEnum(Enum):
-    heros_journey = "heros_journey"
-    before_after_bridge = "before_after_bridge"
-    pixar_formula = "pixar_formula"
-    problem_agitate = "problem_agitate"
-    failure_redemption = "failure_redemption"
-    mystery_reveal = "mystery_reveal"
-    one_big_idea = "one_big_idea"
-
-
-class QuestionOptionsModel(BaseModel):
-    question: str = Field(
-        description="A question in given or inferred language to better understand presentation and its requirements"
-    )
-    options: Optional[List[str]] = Field(
-        default=None,
-        description="Multipe options in given or inferred language for user to choose from each with in 5 words",
-        min_length=1,
-        max_length=3,
-    )
-
-    def __init__(self, **data):
-        if data.get('options') and len(data['options']) > 3:
-            data['options'] = data['options'][:3]
-        super().__init__(**data)
-
-
-class QuestionAnswerModel(BaseModel):
-    question: str
-    answer: str
-
-class PresentationQuestionsAndContentModel(BaseModel):
-    language: str = Field(description="Name of language of presentation in `name in english(name in native language)` format")
-    n_slides: int = Field(description="Number of slides in the presentation")
-    question_options: List[QuestionOptionsModel] = Field(
-        description="Questions and options"
-    )
+from ppt_generator.models.other_models import SlideType
 
 
 class TitleWithGraphIdModel(BaseModel):
@@ -53,22 +11,9 @@ class TitleWithGraphIdModel(BaseModel):
         default=None, description="Id of graph present in this slide"
     )
 
+
 class TitleWithGraphIdCollectionModel(BaseModel):
     items: List[TitleWithGraphIdModel]
-
-class PresentationStorySectionModel(BaseModel):
-    name: str = Field(description="Name of the section of the story")
-    content: str = Field(description="Content of this section")
-
-
-class PresentationIdeaStoryModel(BaseModel):
-    big_idea: str = Field(
-        description='This is a single sentence representation of the story. It basically is, "what is found, and what should be done"'
-    )
-    story_type: StoryTypeEnum = Field(description="Type of story")
-    story: List[PresentationStorySectionModel] = Field(
-        description="A concise story divided into sections"
-    )
 
 
 class PresentationTitlesModel(BaseModel):
@@ -80,6 +25,7 @@ class PresentationTitlesModel(BaseModel):
     #     default=None,
     #     description="In-depth content extracted from prompt, images and documents in about 500 words in Markdown format",
     # )
+
 
 infographics_description = """
     Complete description of infographics charts in this slide.     
@@ -103,14 +49,20 @@ graph_description = """
     **Do not include graphs  that were not submitted.**
 """
 
+
 class BasicSlideConfiguration(BaseModel):
     title: str = Field("Title of this slide")
-    info: str = Field("Content and info for this slide in more than **200 words**. Give information in this format 1) 70 words about what this slides should signify. 2) another 70 words about the contents on the slide. 3) Another 70 words about elements of the slide.")
+    info: str = Field(
+        "Content and info for this slide in more than **200 words**. Give information in this format 1) 70 words about what this slides should signify. 2) another 70 words about the contents on the slide. 3) Another 70 words about elements of the slide."
+    )
     type: SlideType
     graph_information: Optional[str] = Field(
         default=None, description=graph_description
     )
-    infographics_numbers: Optional[str] = Field(description= infographics_description, default=  None)
+    infographics_numbers: Optional[str] = Field(
+        description=infographics_description, default=None
+    )
+
 
 class PresentationConfigurationModel(BaseModel):
     language: str = Field(description="Language of the presentation")

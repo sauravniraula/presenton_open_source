@@ -2,13 +2,11 @@ from enum import Enum
 from typing import Annotated, List, Optional
 from annotated_types import Len
 from pydantic import BaseModel
-from pptx.util import Pt, Length
+from pptx.util import Pt
 from pptx.enum.text import PP_ALIGN
 from pptx.enum.shapes import MSO_AUTO_SHAPE_TYPE, MSO_CONNECTOR_TYPE
 
 from graph_processor.models import GraphModel
-from ppt_generator.models.other_models import PresentationTheme
-from ppt_generator.slide_designs.colors import Colors
 
 
 class PptxBoxShapeEnum(Enum):
@@ -92,133 +90,6 @@ class PptxParagraphModel(BaseModel):
     text: Optional[str] = None
     text_runs: Optional[List[PptxTextRunModel]] = None
 
-    @classmethod
-    def for_title(
-        cls,
-        theme: PresentationTheme,
-        text: str,
-        multiple_colors: bool = False,
-        size: Optional[int] = None,
-    ):
-        size = size or theme.fonts.h1
-
-        if theme == PresentationTheme.classic_light or not multiple_colors:
-            return PptxParagraphModel(
-                text=text,
-                font=PptxFontModel(
-                    name=theme.fonts.title_font,
-                    size=size,
-                    bold=True,
-                    color=theme.colors.heading,
-                ),
-            )
-
-        if ":" in text:
-            parts = text.split(":", 1)
-            return PptxParagraphModel(
-                text_runs=[
-                    PptxTextRunModel(
-                        font=PptxFontModel(
-                            name=theme.fonts.title_font,
-                            size=size,
-                            bold=True,
-                            color=theme.colors.heading,
-                        ),
-                        text=f"{parts[0]}:",
-                    ),
-                    PptxTextRunModel(
-                        font=PptxFontModel(
-                            name=theme.fonts.title_font,
-                            size=size,
-                            bold=True,
-                            color=theme.colors.primary,
-                        ),
-                        text=f" {parts[1].strip()}",
-                    ),
-                ]
-            )
-        else:
-            words = text.split(" ")
-            words_count = len(words)
-            half_index = round(words_count / 2)
-
-            return PptxParagraphModel(
-                text_runs=[
-                    PptxTextRunModel(
-                        font=PptxFontModel(
-                            name=theme.fonts.title_font,
-                            size=size,
-                            bold=True,
-                            color=theme.colors.heading,
-                        ),
-                        text=" ".join(words[:half_index]),
-                    ),
-                    PptxTextRunModel(
-                        size=size,
-                        font=PptxFontModel(
-                            name=theme.fonts.title_font,
-                            size=size,
-                            bold=True,
-                            color=theme.colors.primary,
-                        ),
-                        text=f' {" ".join(words[half_index:])}',
-                    ),
-                ]
-            )
-
-    @classmethod
-    def for_bullet(cls, theme: PresentationTheme, text: str):
-        return PptxParagraphModel(
-            text=text,
-            font=PptxFontModel(
-                name=theme.fonts.bullet_font,
-                size=theme.fonts.h2,
-                bold=True,
-                color=theme.colors.primary,
-            ),
-            spacing=PptxSpacingModel(bottom=20),
-        )
-
-    @classmethod
-    def for_heading(
-        cls,
-        theme: PresentationTheme,
-        text: str,
-        color: Optional[str] = None,
-        alignment: Optional[PP_ALIGN] = None,
-        size: int = None,
-    ):
-        return PptxParagraphModel(
-            alignment=alignment,
-            font=PptxFontModel(
-                name=theme.fonts.heading_font,
-                size=size or theme.fonts.h4,
-                bold=True,
-                color=color or theme.colors.sub_heading,
-            ),
-            spacing=PptxSpacingModel(bottom=10),
-            text=text,
-        )
-
-    @classmethod
-    def for_description(
-        cls,
-        theme: PresentationTheme,
-        text: str,
-        size: Optional[int] = None,
-        alignment: Optional[PP_ALIGN] = None,
-    ):
-        size = size or theme.fonts.h5
-        return PptxParagraphModel(
-            alignment=alignment,
-            font=PptxFontModel(
-                name=theme.fonts.description_font,
-                size=size,
-                color=theme.colors.paragraph,
-            ),
-            text=text,
-        )
-
 
 class PptxObjectFitModel(BaseModel):
     fit: Optional[PptxObjectFitEnum] = None
@@ -242,26 +113,6 @@ class PptxTextBoxModel(PptxShapeModel):
     position: PptxPositionModel
     text_wrap: bool = True
     paragraphs: List[PptxParagraphModel]
-
-    @classmethod
-    def for_list_bullet(cls, theme: PresentationTheme, text: str, left: int, top: int):
-        return PptxTextBoxModel(
-            margin=PptxSpacingModel(top=10, left=20, right=20, bottom=10),
-            fill=PptxFillModel(color=theme.colors.primary),
-            text_wrap=False,
-            position=PptxPositionModel(left=left, top=top, width=50, height=50),
-            paragraphs=[
-                PptxParagraphModel(
-                    text=text,
-                    font=PptxFontModel(
-                        name=theme.fonts.heading_font,
-                        size=28,
-                        bold=True,
-                        color=theme.colors.white,
-                    ),
-                ),
-            ],
-        )
 
 
 class PptxAutoShapeBoxModel(PptxShapeModel):
@@ -299,7 +150,7 @@ class PptxConnectorModel(PptxShapeModel):
     type: MSO_CONNECTOR_TYPE = MSO_CONNECTOR_TYPE.STRAIGHT
     position: PptxPositionModel
     thickness: float = 0.5
-    color: str = Colors.black
+    color: str = "000000"
 
 
 class PptxSlideModel(BaseModel):

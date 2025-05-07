@@ -1,13 +1,13 @@
-from api.models import LogMetadata, UserPreferences
+from api.models import LogMetadata
 from api.routers.presentation.models import UpdatePresentationThemeRequest
 from api.services.logging import LoggingService
-from api.services.instances import supabase_service
+from api.sql_models import PreferencesSqlModel, PresentationSqlModel
+from api.services.database import sql_session
 
 
 class UpdatePresentationThemeHandler:
 
-    def __init__(self, data: UpdatePresentationThemeRequest, user_id: str):
-        self.user_id = user_id
+    def __init__(self, data: UpdatePresentationThemeRequest):
         self.data = data
 
     async def post(self, logging_service: LoggingService, log_metadata: LogMetadata):
@@ -16,18 +16,19 @@ class UpdatePresentationThemeHandler:
             extra=log_metadata.model_dump(),
         )
 
+        presentation = sql_session.get(PresentationSqlModel, self.data.presentation_id)
+        preferences = sql_session.get(PreferencesSqlModel, 0)
+
+        if not preferences:
+            preferences = PreferencesSqlModel(id=0, theme=None)
+            sql_session.add(preferences)
+
         if self.data.theme:
             theme_name = self.data.theme.get("name", None)
             if theme_name and theme_name.lower() == "custom":
-                user_preferences = UserPreferences(
-                    id=self.user_id, theme=self.data.theme
-                )
-                await supabase_service.upsert_user_preferences(
-                    user_preferences.model_dump(mode="json")
-                )
+                preferences.theme = self.data.theme
 
-        await supabase_service.update_presentation(
-            {"id": self.data.presentation_id, "theme": self.data.theme}
-        )
+        presentation.theme = preferences.theme
+        sql_session.commit()
 
         return ""

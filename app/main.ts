@@ -68,7 +68,8 @@ async function stopServers() {
 app.whenReady().then(async () => {
   console.log("When ready...")
   createWindow()
-  win?.loadFile(path.join(resourcesDir, 'ui', 'homepage', 'index.html'))
+  win?.loadFile(path.join(resourcesDir, 'ui/homepage/index.html'))
+  win?.webContents.openDevTools()
 
   // await startServers()
 
