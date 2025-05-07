@@ -23,7 +23,7 @@ import { toast } from "@/hooks/use-toast";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store/store";
 import { isDarkColor } from "../../utils/others";
-import { useFooter } from "../../context/footerContext";
+import { useFooterContext } from "../../context/footerContext";
 
 const SlideFooter: React.FC = () => {
   const [showEditor, setShowEditor] = useState<boolean>(false);
@@ -36,14 +36,17 @@ const SlideFooter: React.FC = () => {
 
   const whiteLogoRef = useRef<HTMLInputElement | null>(null);
   const darkLogoRef = useRef<HTMLInputElement | null>(null);
-  const {
-    footerProperties,
-    setFooterProperties,
-    saveFooterProperties,
-    status,
-  } = useFooter();
+
+  // Use the new FooterContext instead of the useFooter hook
+  const { footerProperties, updateFooterProperties, resetFooterProperties } =
+    useFooterContext();
 
   // Handler for updating nested state properties
+  const setFooterProperties = (updaterFn: (prevProps: any) => any): void => {
+    const newProps = updaterFn(footerProperties);
+    updateFooterProperties(newProps);
+  };
+
   const updateProperty = (path: string, value: any): void => {
     const keys = path.split(".");
     setFooterProperties((prevProps: any) => {
@@ -64,36 +67,18 @@ const SlideFooter: React.FC = () => {
   };
 
   const handleSave = () => {
-    saveFooterProperties(footerProperties);
+    // The updateFooterProperties function now handles saving to the API
+    updateFooterProperties(footerProperties);
     toast({
       title: "Footer properties saved successfully",
     });
   };
 
   const handleReset = () => {
-    const defaultFooterProperties = {
-      logoProperties: {
-        showLogo: true,
-        logoPosition: "left",
-        opacity: 0.8,
-        logoImage: {
-          light: footerProperties.logoProperties.logoImage.light,
-          dark: footerProperties.logoProperties.logoImage.dark,
-        },
-      },
-      logoScale: 1.0,
-      logoOffset: {
-        x: 1,
-        y: 1,
-      },
-      footerMessage: {
-        showMessage: true,
-        fontSize: 12,
-        opacity: 0.8,
-        message: footerProperties.footerMessage.message,
-      },
-    };
-    setFooterProperties(defaultFooterProperties);
+    resetFooterProperties();
+    toast({
+      title: "Footer properties reset to default",
+    });
   };
 
   // Helper for checkbox inputs
@@ -162,9 +147,13 @@ const SlideFooter: React.FC = () => {
     }
   };
 
+  const getLocalImageUrl = (filePath: string) => {
+    if (!filePath) return "";
+    return `file://${filePath}`;
+  };
+
   const handleEditor = () => {
     setShowEditor(!showEditor);
-
     return;
   };
 
@@ -173,47 +162,27 @@ const SlideFooter: React.FC = () => {
   ) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    // Check file type
+
     if (!file.type.startsWith("image/")) {
-      const error_message = "Please upload an image file";
       toast({
         title: "Please Upload An Image File",
       });
       return;
     }
-    try {
-      setIsUploading({
-        ...isUploading,
-        white: true,
-      });
-      const formData = new FormData();
-      formData.append("file", file);
-      const response = await fetch("/api/user-public-upload", {
-        method: "POST",
-        body: formData,
-      });
-      if (!response.ok) {
-        throw new Error("Upload failed");
-      }
-      const data = await response.json();
-      setFooterProperties((prev) => ({
-        ...prev,
-        logoProperties: {
-          ...prev.logoProperties,
-          logoImage: {
-            ...prev.logoProperties.logoImage,
-            light: data.url,
-          },
+
+    // Just use the file path directly
+    const filePath = file.path; // Electron provides the full path in the file object
+
+    setFooterProperties((prev: any) => ({
+      ...prev,
+      logoProperties: {
+        ...prev.logoProperties,
+        logoImage: {
+          ...prev.logoProperties.logoImage,
+          light: filePath,
         },
-      }));
-    } catch (err) {
-      const error_message = "Failed to upload image. Please try again.";
-    } finally {
-      setIsUploading({
-        ...isUploading,
-        white: false,
-      });
-    }
+      },
+    }));
   };
 
   const handleDarkLogoUpload = async (
@@ -221,47 +190,27 @@ const SlideFooter: React.FC = () => {
   ) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    // Check file type
+
     if (!file.type.startsWith("image/")) {
-      const error_message = "Please upload an image file";
       toast({
         title: "Please Upload An Image File",
       });
       return;
     }
-    try {
-      setIsUploading({
-        ...isUploading,
-        dark: true,
-      });
-      const formData = new FormData();
-      formData.append("file", file);
-      const response = await fetch("/api/user-public-upload", {
-        method: "POST",
-        body: formData,
-      });
-      if (!response.ok) {
-        throw new Error("Upload failed");
-      }
-      const data = await response.json();
-      setFooterProperties((prev) => ({
-        ...prev,
-        logoProperties: {
-          ...prev.logoProperties,
-          logoImage: {
-            ...prev.logoProperties.logoImage,
-            dark: data.url,
-          },
+
+    const filePath = file.path;
+    
+
+    setFooterProperties((prev: any) => ({
+      ...prev,
+      logoProperties: {
+        ...prev.logoProperties,
+        logoImage: {
+          ...prev.logoProperties.logoImage,
+          dark: filePath,
         },
-      }));
-    } catch (err) {
-      const error_message = "Failed to upload image. Please try again.";
-    } finally {
-      setIsUploading({
-        ...isUploading,
-        dark: false,
-      });
-    }
+      },
+    }));
   };
 
   const handleUploadClick = (isWhite: boolean) => {
@@ -301,7 +250,7 @@ const SlideFooter: React.FC = () => {
                   data-element-type="picture"
                   id="footer-user-logo"
                   className="w-auto h-full object-contain"
-                  src={getLogoImageSrc()}
+                  src={getLocalImageUrl(getLogoImageSrc())}
                   alt="logo"
                   style={getLogoStyle()}
                 />
@@ -354,7 +303,7 @@ const SlideFooter: React.FC = () => {
                   data-element-type="picture"
                   id="footer-user-logo"
                   className="w-auto h-full object-contain"
-                  src={getLogoImageSrc()}
+                  src={getLocalImageUrl(getLogoImageSrc())}
                   alt="logo"
                   style={getLogoStyle()}
                 />
@@ -415,6 +364,7 @@ const SlideFooter: React.FC = () => {
                         accept="image/*"
                         id="whiteLogo"
                         name="whiteLogo"
+                        
                         onChange={handleWhiteLogoUpload}
                         className="opacity-0 z-[-10] absolute group-hover:border-blue-500 h-full w-full cursor-pointer"
                       />
@@ -452,6 +402,7 @@ const SlideFooter: React.FC = () => {
                         accept="image/*"
                         id="darkLogo"
                         name="darkLogo"
+                        
                         type="file"
                         className="opacity-0 h-full w-full cursor-pointer"
                       />

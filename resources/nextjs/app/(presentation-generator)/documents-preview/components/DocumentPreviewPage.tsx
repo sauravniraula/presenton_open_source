@@ -22,15 +22,9 @@ import ToolTip from "@/components/ToolTip";
 const DocumentsPreviewPage: React.FC = () => {
   const dispatch = useDispatch();
   const router = useRouter();
-  const {
-    config,
-    reports,
-    documents,
-    images,
-    charts,
-    tables,
-    promptTablesExtraction,
-  } = useSelector((state: RootState) => state.pptGenUpload);
+  const { config, reports, documents, images, charts, tables } = useSelector(
+    (state: RootState) => state.pptGenUpload
+  );
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [textContents, setTextContents] = useState<any>({});
@@ -51,13 +45,8 @@ const DocumentsPreviewPage: React.FC = () => {
   const reportKeys = Object.keys(reports);
   const documentKeys = Object.keys(documents);
   const imageKeys = Object.keys(images);
-  const promptTablesKeys = Object.keys(promptTablesExtraction);
-  const allSources = [
-    ...reportKeys,
-    ...documentKeys,
-    ...imageKeys,
-    ...promptTablesKeys,
-  ];
+
+  const allSources = [...reportKeys, ...documentKeys, ...imageKeys];
 
   const updateText = (value: string) => {
     if (selectedDocument) {
@@ -98,7 +87,10 @@ const DocumentsPreviewPage: React.FC = () => {
     // setTextContents(textContents)
     setDownloadingDocuments([]);
   };
-
+  useEffect(() => {
+    setSelectedDocument(allSources[0]);
+    mantainDocumentTexts();
+  }, []);
   const saveDocuments = async () => {
     const promises: Promise<any>[] = [];
 
@@ -227,9 +219,6 @@ const DocumentsPreviewPage: React.FC = () => {
   };
   const handleClose = () => {
     setIsOpen(false);
-    // if (window.innerWidth < 768) {
-    //   setIsMobilePanelOpen(false);
-    // }
   };
 
   return (
@@ -267,27 +256,7 @@ const DocumentsPreviewPage: React.FC = () => {
                 className="text-black mb-4 ml-auto mr-0 cursor-pointer hover:text-gray-600"
                 size={20}
               />
-              {/* Prompt Tables */}
-              {Object.keys(promptTablesExtraction).length > 0 &&
-                // @ts-ignore
-                Object.values(promptTablesExtraction)[0].length > 0 && (
-                  <div
-                    className={`${
-                      selectedDocument == Object.keys(promptTablesExtraction)[0]
-                        ? styles.selected_border
-                        : styles.unselected_border
-                    } my-4 w-full h-20 cursor-pointer flex items-center justify-center border border-gray-200 rounded-lg`}
-                    onClick={() =>
-                      updateSelectedDocument(
-                        Object.keys(promptTablesExtraction)[0]
-                      )
-                    }
-                  >
-                    <p className="text-base mt-2 text-[#2E2E2E] opacity-70">
-                      PROMPT TABLES
-                    </p>
-                  </div>
-                )}
+
               {/* Research Report */}
               {reportKeys.length > 0 && (
                 <div
@@ -303,7 +272,7 @@ const DocumentsPreviewPage: React.FC = () => {
                   <div>
                     <img
                       className="mx-auto h-20"
-                      src="/generator/report.png"
+                      src="/report.png"
                       alt="Document preview"
                     />
                     <p className="text-sm mt-2 text-[#2E2E2E]">
@@ -380,26 +349,6 @@ const DocumentsPreviewPage: React.FC = () => {
           <div className="bg-white  w-full mx-2 sm:mx-4 h-[calc(100vh-100px)] rounded-md  overflow-y-auto py-6 pl-6">
             {selectedDocument != null && (
               <div className="h-full mr-4">
-                {/* Prompt Tables  Content*/}
-                {Object.keys(promptTablesExtraction).includes(
-                  selectedDocument
-                ) && (
-                  <div>
-                    {
-                      // @ts-ignore
-                      Object.values(promptTablesExtraction)[0].map(
-                        (each: any) => {
-                          return (
-                            <MarkdownRenderer
-                              key={each.id}
-                              content={each.markdown || ""}
-                            />
-                          );
-                        }
-                      )
-                    }
-                  </div>
-                )}
                 {documentKeys.includes(selectedDocument) && (
                   <div
                     className={` overflow-y-auto  hide-scrollbar ${
@@ -436,20 +385,13 @@ const DocumentsPreviewPage: React.FC = () => {
                     >
                       <h1 className="text-2xl font-medium mb-5">Content:</h1>
 
-                      {
-                        downloadingDocuments.includes(selectedDocument) ? (
-                          <Skeleton className="w-full h-full"></Skeleton>
-                        ) : (
-                          <MarkdownRenderer
-                            content={textContents[selectedDocument] || ""}
-                          />
-                        )
-                        // <MarkdownEditor
-                        //     key={selectedDocument}
-                        //     initialValue={textContents[selectedDocument] || ''}
-                        //     onSave={handleSaveMarkdown}
-                        // />
-                      }
+                      {downloadingDocuments.includes(selectedDocument) ? (
+                        <Skeleton className="w-full h-full"></Skeleton>
+                      ) : (
+                        <MarkdownRenderer
+                          content={textContents[selectedDocument] || ""}
+                        />
+                      )}
                     </div>
                   </div>
                 )}
@@ -458,7 +400,7 @@ const DocumentsPreviewPage: React.FC = () => {
                     <h1 className="text-2xl font-medium mb-5">
                       Tables And Charts
                     </h1>
-                    {documentTablesAndCharts().map((each, index) => {
+                    {documentTablesAndCharts().map((each: any, index) => {
                       return (
                         <div
                           key={index}
@@ -484,7 +426,6 @@ const DocumentsPreviewPage: React.FC = () => {
               onClick={handleCreatePresentation}
               className="flex items-center gap-2 px-8 py-6  rounded-sm text-md bg-[#5146E5] hover:bg-[#5146E5]/90"
             >
-              {/* <img className="h-6 w-6" src='/generator/convert-to-slides.svg' alt="convert-to-slides" /> */}
               <span className="text-white font-semibold">Next</span>
               <ChevronRight />
             </Button>

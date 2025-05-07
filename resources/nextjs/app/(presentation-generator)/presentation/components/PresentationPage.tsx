@@ -8,11 +8,9 @@ import PresentationMode from "../../components/PresentationMode";
 
 import { DashboardApi } from "@/app/dashboard/api/dashboard";
 import SidePanel from "../components/SidePanel";
-import { Slide } from "../../types/slide";
 import SlideContent from "../components/SlideContent";
 
 import {
-  addSlide,
   deletePresentationSlide,
   setPresentationData,
   setStreaming,
@@ -28,9 +26,7 @@ import { Loader2 } from "lucide-react";
 import { jsonrepair } from "jsonrepair";
 import { Button } from "@/components/ui/button";
 import { AlertCircle } from "lucide-react";
-import { FooterProvider } from "../../context/footerContext";
 import Help from "./Help";
-import { getEmptySlideContent } from "../../utils/NewSlideContent";
 
 // Custom debounce function
 function useDebounce<T extends (...args: any[]) => void>(
@@ -131,9 +127,7 @@ const PresentationPage = ({ presentation_id }: { presentation_id: string }) => {
       dispatch(setStreaming(true));
 
       evtSource = new EventSource(
-        `${
-          PresentationGenerationApi.BASE_URL
-        }/ppt/generate/stream?user_id=${"user?.id"}&presentation_id=${presentation_id}&session=${session}`
+        `${PresentationGenerationApi.BASE_URL}/ppt/generate/stream?user_id=${DashboardApi.USER_ID}&presentation_id=${presentation_id}&session=${session}`
       );
 
       evtSource.onopen = () => {
@@ -308,61 +302,16 @@ const PresentationPage = ({ presentation_id }: { presentation_id: string }) => {
     router.push(`/presentation/${presentation_id}`);
   };
   // Function to handle slide change  for presentation mode
-  const handleSlideChange = useCallback(
-    (newSlide: number) => {
-      if (newSlide >= 0 && newSlide < presentationData?.slides.length!) {
-        setSelectedSlide(newSlide);
-        router.push(
-          `/presentation/${presentation_id}?mode=present&slide=${newSlide}`,
-          { scroll: false }
-        );
-      }
-    },
-    [presentation_id, router]
-  );
-
-  const handleSlideSave = async () => {
-    const apiBody = {
-      presentation_id: presentation_id,
-
-      slides: presentationData?.slides!,
-    };
-    const response = await PresentationGenerationApi.updatePresentationContent(
-      apiBody
-    );
-    if (response) {
-      toast({
-        title: "Success",
-        description: "Presentation updated successfully",
-      });
+  const handleSlideChange = (newSlide: number) => {
+    if (newSlide >= 0 && newSlide < presentationData?.slides.length!) {
+      setSelectedSlide(newSlide);
+      router.push(
+        `/presentation/${presentation_id}?mode=present&slide=${newSlide}`,
+        { scroll: false }
+      );
     }
   };
 
-  const handleNewSlide = (type: number) => {
-    const newSlide: Slide = getEmptySlideContent(
-      type,
-      presentationData?.slides.length!,
-      presentation_id
-    );
-
-    dispatch(
-      addSlide({ slide: newSlide, index: presentationData?.slides.length! })
-    );
-
-    // // Scroll to the new slide
-    setTimeout(() => {
-      const slideElement = document.getElementById(
-        `slide-${presentationData?.slides.length!}`
-      );
-      if (slideElement) {
-        slideElement.scrollIntoView({
-          behavior: "smooth",
-          block: "center",
-        });
-        setSelectedSlide(presentationData?.slides.length!);
-      }
-    }, 100);
-  };
   const handleDeleteSlide = async (index: number) => {
     dispatch(deletePresentationSlide(index));
     const response = PresentationGenerationApi.deleteSlide(
@@ -387,96 +336,94 @@ const PresentationPage = ({ presentation_id }: { presentation_id: string }) => {
       />
     );
   }
-
+  console.log("called okay");
   // Regular view
   return (
     <div className="h-screen flex overflow-hidden flex-col">
-      <FooterProvider userId={presentationData?.presentation?.user_id!}>
-        {/* Auto save loading state */}
-        {autoSaveLoading && (
-          <div className="fixed right-6 top-[5.2rem] z-50 bg-white bg-opacity-50 flex items-center justify-center">
-            <Loader2 className="animate-spin text-primary" />
-          </div>
-        )}
-        <Header presentation_id={presentation_id} currentSlide={currentSlide} />
-        <Help />
-        {error ? (
-          <div className="flex flex-col items-center justify-center h-screen bg-gray-100">
-            <div
-              className="bg-white border border-red-300 text-red-700 px-6 py-8 rounded-lg shadow-lg flex flex-col items-center"
-              role="alert"
-            >
-              <AlertCircle className="w-16 h-16 mb-4 text-red-500" />
-              <strong className="font-bold text-4xl mb-2">Oops!</strong>
-              <p className="block text-2xl py-2">
-                We encountered an issue loading your presentation.
-              </p>
-              <p className="text-lg py-2">
-                Please check your internet connection or try again later.
-              </p>
-              <Button
-                className="mt-4 bg-red-500 text-white hover:bg-red-600 focus:ring-4 focus:ring-red-300"
-                onClick={() => window.location.reload()}
-              >
-                Retry
-              </Button>
-            </div>
-          </div>
-        ) : (
+      {/* Auto save loading state */}
+      {autoSaveLoading && (
+        <div className="fixed right-6 top-[5.2rem] z-50 bg-white bg-opacity-50 flex items-center justify-center">
+          <Loader2 className="animate-spin text-primary" />
+        </div>
+      )}
+      <Header presentation_id={presentation_id} currentSlide={currentSlide} />
+      <Help />
+      {error ? (
+        <div className="flex flex-col items-center justify-center h-screen bg-gray-100">
           <div
-            style={{
-              background: currentColors.background,
-            }}
-            className="flex flex-1  relative pt-6"
+            className="bg-white border border-red-300 text-red-700 px-6 py-8 rounded-lg shadow-lg flex flex-col items-center"
+            role="alert"
           >
-            <SidePanel
-              selectedSlide={selectedSlide}
-              onSlideClick={handleSlideClick}
-              loading={loading}
-              isMobilePanelOpen={isMobilePanelOpen}
-              setIsMobilePanelOpen={setIsMobilePanelOpen}
-            />
-            <div className="flex-1 h-[calc(100vh-100px)]  overflow-y-auto">
-              <div
-                className="mx-auto flex flex-col items-center  overflow-hidden  justify-center p-2 sm:p-6  pt-0 slide-theme"
-                data-theme={currentTheme}
-              >
-                {!presentationData ||
-                loading ||
-                !presentationData?.slides ||
-                presentationData?.slides.length === 0 ? (
-                  <div className="relative w-full h-[calc(100vh-120px)] mx-auto ">
-                    <div className=" ">
-                      {Array.from({ length: 2 }).map((_, index) => (
-                        <Skeleton
-                          key={index}
-                          className="aspect-video bg-gray-400 my-4 w-full mx-auto max-w-[1280px]"
-                        />
-                      ))}
-                    </div>
-                    {session && <LoadingState />}
+            <AlertCircle className="w-16 h-16 mb-4 text-red-500" />
+            <strong className="font-bold text-4xl mb-2">Oops!</strong>
+            <p className="block text-2xl py-2">
+              We encountered an issue loading your presentation.
+            </p>
+            <p className="text-lg py-2">
+              Please check your internet connection or try again later.
+            </p>
+            <Button
+              className="mt-4 bg-red-500 text-white hover:bg-red-600 focus:ring-4 focus:ring-red-300"
+              onClick={() => window.location.reload()}
+            >
+              Retry
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div
+          style={{
+            background: currentColors.background,
+          }}
+          className="flex flex-1  relative pt-6"
+        >
+          <SidePanel
+            selectedSlide={selectedSlide}
+            onSlideClick={handleSlideClick}
+            loading={loading}
+            isMobilePanelOpen={isMobilePanelOpen}
+            setIsMobilePanelOpen={setIsMobilePanelOpen}
+          />
+          <div className="flex-1 h-[calc(100vh-100px)]  overflow-y-auto">
+            <div
+              className="mx-auto flex flex-col items-center  overflow-hidden  justify-center p-2 sm:p-6  pt-0 slide-theme"
+              data-theme={currentTheme}
+            >
+              {!presentationData ||
+              loading ||
+              !presentationData?.slides ||
+              presentationData?.slides.length === 0 ? (
+                <div className="relative w-full h-[calc(100vh-120px)] mx-auto ">
+                  <div className=" ">
+                    {Array.from({ length: 2 }).map((_, index) => (
+                      <Skeleton
+                        key={index}
+                        className="aspect-video bg-gray-400 my-4 w-full mx-auto max-w-[1280px]"
+                      />
+                    ))}
                   </div>
-                ) : (
-                  <>
-                    {presentationData &&
-                      presentationData.slides &&
-                      presentationData.slides.length > 0 &&
-                      presentationData.slides.map((slide, index) => (
-                        <SlideContent
-                          key={`${slide.type}-${index}-${slide.index}}`}
-                          slide={slide}
-                          index={index}
-                          presentationId={presentation_id}
-                          onDeleteSlide={handleDeleteSlide}
-                        />
-                      ))}
-                  </>
-                )}
-              </div>
+                  {session && <LoadingState />}
+                </div>
+              ) : (
+                <>
+                  {presentationData &&
+                    presentationData.slides &&
+                    presentationData.slides.length > 0 &&
+                    presentationData.slides.map((slide, index) => (
+                      <SlideContent
+                        key={`${slide.type}-${index}-${slide.index}}`}
+                        slide={slide}
+                        index={index}
+                        presentationId={presentation_id}
+                        onDeleteSlide={handleDeleteSlide}
+                      />
+                    ))}
+                </>
+              )}
             </div>
           </div>
-        )}
-      </FooterProvider>
+        </div>
+      )}
     </div>
   );
 };

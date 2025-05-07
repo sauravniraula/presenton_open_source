@@ -10,7 +10,7 @@ import {
 import React from "react";
 import Link from "next/link";
 
-const UserAccount = ({ showName = true }: { showName?: boolean }) => {
+const UserAccount = () => {
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -18,11 +18,10 @@ const UserAccount = ({ showName = true }: { showName?: boolean }) => {
           <Avatar className="h-10 w-10">
             <AvatarFallback>U</AvatarFallback>
           </Avatar>
-          {showName && (
-            <div className="hidden  sm:flex items-center">
-              <ChevronDown className="w-4 h-4 ml-1 text-white" />
-            </div>
-          )}
+
+          <div className="hidden  sm:flex items-center">
+            <ChevronDown className="w-4 h-4 ml-1 text-white" />
+          </div>
         </button>
       </PopoverTrigger>
       <PopoverContent

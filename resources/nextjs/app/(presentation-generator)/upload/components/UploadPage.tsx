@@ -46,12 +46,6 @@ const UploadPage = () => {
     showProgress: false,
     extra_info: "",
   });
-  const getPromptTablesExtraction = async () => {
-    const response = await PresentationGenerationApi.promptTablesExtraction(
-      config.prompt
-    );
-    return response;
-  };
 
   // Handlers for presentation config
   const handleConfigChange = (key: keyof PresentationConfig, value: string) => {
@@ -134,9 +128,6 @@ const UploadPage = () => {
             )
           );
         }
-        if (config.prompt.trim().length > 0) {
-          promises.push(getPromptTablesExtraction());
-        }
 
         let responses = await Promise.all(promises);
         let research: any = {};
@@ -144,7 +135,7 @@ const UploadPage = () => {
         let processed_images: any = {};
         let extracted_charts: any = {};
         let extracted_tables: any = {};
-        let extracted_prompt_tables: any = {};
+
         if (researchMode) {
           let researchResponse = responses.shift();
 
@@ -158,12 +149,7 @@ const UploadPage = () => {
           extracted_charts = decomposedResponse["charts"];
           extracted_tables = decomposedResponse["tables"];
         }
-        if (config.prompt.trim().length > 0) {
-          let promptTablesExtractionResponse = responses.shift();
 
-          extracted_prompt_tables[promptTablesExtractionResponse["source"]] =
-            promptTablesExtractionResponse["tables"];
-        }
         const pptGenUpdateNewState = {
           config: config,
           reports: research,
@@ -171,12 +157,9 @@ const UploadPage = () => {
           images: processed_images,
           charts: extracted_charts,
           tables: extracted_tables,
-          promptTablesExtraction: extracted_prompt_tables,
           questions: [],
         };
-
         dispatch(setPptGenUploadState(pptGenUpdateNewState));
-
         router.push("/documents-preview");
       } else {
         setLoadingState({

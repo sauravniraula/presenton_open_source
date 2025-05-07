@@ -114,7 +114,7 @@ const IconsEditor = ({
           <img
             src={
               icon.startsWith("user")
-                ? `${PresentationGenerationApi.BASE_URL}${icon}`
+                ? `${PresentationGenerationApi.BUCKET_URL}${icon}`
                 : icon
             }
             alt="slide icon"

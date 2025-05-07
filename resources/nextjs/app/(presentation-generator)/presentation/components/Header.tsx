@@ -261,12 +261,7 @@ const Header = ({
         variant="ghost"
         className="pb-4 border-b rounded-none border-gray-300 w-full flex justify-start text-[#5146E5]"
       >
-        <Image
-          src="/generator/pdf.svg"
-          alt="pdf export"
-          width={30}
-          height={30}
-        />
+        <Image src="/pdf.svg" alt="pdf export" width={30} height={30} />
         Export as PDF
       </Button>
       <Button
@@ -274,12 +269,7 @@ const Header = ({
         variant="ghost"
         className="w-full flex justify-start text-[#5146E5]"
       >
-        <Image
-          src="/generator/pptx.svg"
-          alt="pptx export"
-          width={30}
-          height={30}
-        />
+        <Image src="/pptx.svg" alt="pptx export" width={30} height={30} />
         Export as PPTX
       </Button>
     </div>
@@ -288,14 +278,14 @@ const Header = ({
   const MenuItems = () => (
     <div className="flex flex-col lg:flex-row items-center gap-4">
       {/* Present Button */}
-      {/* <Button
-                onClick={() => router.push(`?mode=present&slide=${currentSlide || 0}`)}
-                variant='ghost'
-                className='border border-white font-bold text-white rounded-[32px] transition-all duration-300 group'
-            >
-                <Play className='w-4 h-4 mr-1 stroke-white group-hover:stroke-black' />
-                Present
-            </Button> */}
+      <Button
+        onClick={() => router.push(`?mode=present&slide=${currentSlide || 0}`)}
+        variant="ghost"
+        className="border border-white font-bold text-white rounded-[32px] transition-all duration-300 group"
+      >
+        <Play className="w-4 h-4 mr-1 stroke-white group-hover:stroke-black" />
+        Present
+      </Button>
 
       {/* Desktop Export Button with Popover */}
 
@@ -319,12 +309,6 @@ const Header = ({
       </div>
     </div>
   );
-  const copyToClipBoard = () => {
-    navigator.clipboard.writeText(window.location.href);
-    toast({
-      title: "Link copied to clipboard",
-    });
-  };
 
   return (
     <div className="bg-[#5146E5] w-full shadow-lg sticky top-0 z-50">
@@ -348,15 +332,9 @@ const Header = ({
 
         {/* Desktop Menu */}
         <div className="hidden lg:flex items-center gap-4 2xl:gap-6">
-          {/* <p className='text-white text-sm font-neue-montreal font-medium'>
-                        {presentation?.title}
-                    </p> */}
-
-          {/* Theme Dropdown */}
           {isStreaming && (
             <Loader2 className="animate-spin text-white font-bold w-6 h-6" />
           )}
-
           <Select value={currentTheme} onValueChange={handleThemeSelect}>
             <SelectTrigger className="w-[160px] bg-[#6358fd] text-white border-none hover:bg-[#5146E5] transition-colors">
               <div className="flex items-center gap-2">
@@ -371,7 +349,6 @@ const Header = ({
               />
             </SelectContent>
           </Select>
-
           {/* Custom Theme Modal */}
           <Modal
             isOpen={showCustomThemeModal}
@@ -383,19 +360,13 @@ const Header = ({
               presentationId={presentation_id}
             />
           </Modal>
-
-          <button
-            onClick={copyToClipBoard}
-            className="flex items-center gap-2 text-white bg-[#6558fd] hover:bg-[#6558fd]/50 px-4 py-2 rounded-lg text-sm font-neue-montreal font-medium"
-          >
-            <Copy className="w-4 h-4" /> Share
-          </button>
           <MenuItems />
+          <UserAccount />
         </div>
 
         {/* Mobile Menu */}
         <div className="lg:hidden flex items-center gap-4">
-          <UserAccount showName={false} />
+          <UserAccount />
           <Sheet>
             <SheetTrigger asChild>
               <button className="text-white">
@@ -404,26 +375,6 @@ const Header = ({
             </SheetTrigger>
             <SheetContent side="right" className="bg-[#5146E5] border-none p-4">
               <div className="flex flex-col gap-6 mt-10">
-                {/* <Input
-                                    className='text-white border-none focus-visible:ring-white px-4 py-2 rounded-[32px] text-base font-neue-montreal font-medium'
-                                    value={presentation?.title}
-
-                                    readOnly
-                                /> */}
-
-                <a
-                  href="/contact"
-                  className="text-white text-center bg-[#6558fd] hover:bg-[#6558fd]/50 px-4 py-2 rounded-lg text-sm font-neue-montreal font-medium"
-                >
-                  Send Feedback
-                </a>
-
-                <button
-                  onClick={copyToClipBoard}
-                  className="flex items-center gap-2 justify-center text-white bg-[#6558fd] hover:bg-[#6558fd]/50 px-4 py-2 rounded-lg text-sm font-neue-montreal font-medium"
-                >
-                  <Copy className="w-4 h-4" /> Share
-                </button>
                 <Select onValueChange={handleThemeSelect}>
                   <SelectTrigger className="w-full bg-[#6358fd] flex justify-center gap-2 text-white border-none">
                     <Palette className="w-4 h-4 mr-2" />

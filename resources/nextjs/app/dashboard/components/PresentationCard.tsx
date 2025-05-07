@@ -85,7 +85,7 @@ export const PresentationCard = ({
         <div className="relative border-2 border-gray-200 aspect-[16/9] rounded-[8px] overflow-hidden">
           {thumbnail ? (
             <img
-              src={`${PresentationGenerationApi.BASE_URL}${thumbnail}`}
+              src={`${PresentationGenerationApi.BUCKET_URL}${thumbnail}`}
               alt={title}
               className="object-cover h-full w-full"
             />

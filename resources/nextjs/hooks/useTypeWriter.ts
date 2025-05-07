@@ -1,17 +1,27 @@
 import { useState, useEffect } from "react";
 
-export const useTypewriter = (text: string, speed = 50) => {
+export const useTypewriter = (text: string, speed = 50, enabled = true) => {
   const [displayText, setDisplayText] = useState("");
   const [isCursorVisible, setIsCursorVisible] = useState(true);
   const [index, setIndex] = useState(0);
 
+  // Reset when text changes or enabled status changes
   useEffect(() => {
-    setDisplayText(""); // Reset text
-    setIndex(0); // Reset index
-    setIsCursorVisible(true); // Ensure cursor is visible
-  }, [text]); // Reset when text changes
+    if (enabled) {
+      setDisplayText("");
+      setIndex(0);
+      setIsCursorVisible(true);
+    } else {
+      // When disabled, immediately show full text and hide cursor
+      setDisplayText(text);
+      setIsCursorVisible(false);
+    }
+  }, [text, enabled]);
 
+  // Only run the typing effect when enabled
   useEffect(() => {
+    if (!enabled) return;
+
     if (index >= text.length) {
       setIsCursorVisible(false);
       return;
@@ -22,8 +32,8 @@ export const useTypewriter = (text: string, speed = 50) => {
       setIndex((prev) => prev + 1);
     }, speed);
 
-    return () => clearTimeout(timeout); // Cleanup
-  }, [index, text, speed]); // Runs whenever index changes
+    return () => clearTimeout(timeout);
+  }, [index, text, speed, enabled]);
 
   return { displayText, isCursorVisible };
 };

@@ -130,7 +130,7 @@ const Type7Layout = ({
             style={{
               boxShadow: "0 2px 10px 0 rgba(43, 43, 43, 0.2)",
             }}
-            className={` w-full slide-box  rounded-lg p-3 lg:p-6 relative group`}
+            className={`w-full slide-box  rounded-lg p-3 lg:p-6 relative group`}
           >
             <ElementMenu index={index} handleDeleteItem={DeleteItem} />
             <IconsEditor

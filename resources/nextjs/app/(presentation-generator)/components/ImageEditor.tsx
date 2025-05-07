@@ -308,7 +308,7 @@ const ImageEditor = ({
   const getImageUrl = (src: string | null) => {
     if (!src) return "";
     return src.startsWith("user")
-      ? `${PresentationGenerationApi.BASE_URL}${src}`
+      ? `${PresentationGenerationApi.BUCKET_URL}${src}`
       : src;
   };
 

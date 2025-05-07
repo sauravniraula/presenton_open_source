@@ -12,7 +12,7 @@ import {
 } from "../store/themeSlice";
 import { ThemeType } from "../upload/type";
 
-import { PresentationGenerationApi } from "../services/api/presentation-generation";
+import { useThemeService, ThemeColors } from "../services/themeSqliteService";
 
 interface CustomThemeSettingsProps {
   onClose?: () => void;
@@ -25,7 +25,14 @@ const CustomThemeSettings = ({
 }: CustomThemeSettingsProps) => {
   const dispatch = useDispatch();
   const { currentColors } = useSelector((state: RootState) => state.theme);
-  const [draftColors, setDraftColors] = useState(currentColors);
+  const [draftColors, setDraftColors] = useState<ThemeColors>({
+    ...currentColors,
+    iconBg: currentColors.iconBg || "#1F1F2D",
+    chartColors: currentColors.chartColors || ["#1F1F2D"],
+    fontFamily: currentColors.fontFamily || "var(--font-inter)",
+  });
+
+  const themeService = useThemeService();
 
   // Refs for tracking drag state and RAF
   const isDragging = useRef(false);
@@ -81,9 +88,13 @@ const CustomThemeSettings = ({
   const handleSave = async () => {
     try {
       // Update UI immediately
-      dispatch(setTheme("custom" as ThemeType));
+      const themeType = "custom" as ThemeType;
+      dispatch(setTheme(themeType));
       dispatch(
-        setThemeColors({ ...draftColors, theme: "custom" as ThemeType })
+        setThemeColors({
+          ...draftColors,
+          theme: themeType,
+        })
       );
 
       // Set CSS variables
@@ -100,20 +111,13 @@ const CustomThemeSettings = ({
       );
       root.style.setProperty("--custom-slide-box", draftColors.slideBox);
 
-      // Save to Supabase
-      //   if (user?.id) {
-      //     await UserPreferencesService.saveTheme(user.id, {
-      //       name: "custom",
-      //       colors: draftColors,
-      //     });
-      //   }
-
-      PresentationGenerationApi.setThemeColors(presentationId, {
+      // Save to SQLite
+      await themeService.saveTheme({
         name: "custom",
-        colors: draftColors,
-      }).catch((error) => {
-        console.error("Failed to save theme:", error);
-        // Optionally show an error toast here
+        colors: {
+          ...draftColors,
+          theme: themeType,
+        },
       });
 
       onClose?.();
@@ -122,24 +126,17 @@ const CustomThemeSettings = ({
     }
   };
 
-  // Add useEffect to load saved preferences when component mounts
+  // Load saved theme
   React.useEffect(() => {
-    const loadSavedPreferences = async () => {
-      //   if (!user?.id) return;
-
+    const loadSavedCustomTheme = async () => {
+      console.log("called heheheh");
       try {
         dispatch(setLoadingState(true));
-        // const savedTheme = await UserPreferencesService.getTheme(user.id);
-        // if (savedTheme) {
-        //     // dispatch(loadSavedTheme({
-        //     //     ...savedTheme,
-        //     //     colors: {
-        //     //         ...savedTheme.colors,
-        //     //         chartColors: savedTheme.colors.chartColors || ['#f45b00', '#00e38f', '#0d4179', '#ff0122', '#ef407b']
-        //     //     }
-        //     // }));
-        //     setDraftColors(savedTheme.colors);
-        // }
+        const savedTheme = await themeService.getTheme();
+        if (savedTheme) {
+          dispatch(loadSavedTheme(savedTheme));
+          setDraftColors(savedTheme.colors);
+        }
       } catch (error) {
         console.error("Failed to load theme preferences:", error);
       } finally {
@@ -147,8 +144,8 @@ const CustomThemeSettings = ({
       }
     };
 
-    loadSavedPreferences();
-  }, [dispatch]);
+    loadSavedCustomTheme();
+  }, []);
 
   // Cleanup RAF on unmount
   React.useEffect(() => {

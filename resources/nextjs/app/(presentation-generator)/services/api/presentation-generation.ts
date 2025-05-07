@@ -4,10 +4,11 @@ import { IconSearch, ImageGenerate, ImageSearch } from "./params";
 export class PresentationGenerationApi {
   // static BASE_URL="https://api.presenton.ai";
   // static BASE_URL="https://presentation-generator-fragrant-mountain-1643.fly.dev";
-  // static BASE_URL =
-  //   "https://presentation-generator-wandering-night-8649.fly.dev";
-  static BASE_URL = "http://localhost:48388";
+  static BASE_URL =
+    "https://presentation-generator-wandering-night-8649.fly.dev";
+  // static BASE_URL = "http://localhost:48388";
 
+  static BUCKET_URL = "https://s3.ap-south-1.amazonaws.com/pptgen-public-v2/";
   static async getChapterDetails() {
     try {
       const response = await fetch(
@@ -63,37 +64,6 @@ export class PresentationGenerationApi {
     }
   }
 
-  static async postCSVContentSubmit({
-    presentation_id,
-    report,
-  }: {
-    presentation_id: string;
-    report: any;
-  }) {
-    try {
-      const response = await fetch(
-        `${PresentationGenerationApi.BASE_URL}/ppt/interpreted_report/submit`,
-        {
-          method: "POST",
-          headers: getHeader(),
-          body: JSON.stringify({
-            presentation_id: presentation_id,
-            report: report,
-          }),
-          cache: "no-cache",
-        }
-      );
-
-      if (response.status === 200) {
-        return true;
-      } else {
-        throw new Error(`Failed to generate report: ${response.statusText}`);
-      }
-    } catch (error) {
-      console.error("Error in Generate Research Report", error);
-      throw error;
-    }
-  }
   static async generateResearchReport(prompt: string, language: string | null) {
     const apiBody = {
       query: prompt,
@@ -122,31 +92,7 @@ export class PresentationGenerationApi {
       throw error;
     }
   }
-  static async promptTablesExtraction(prompt: string) {
-    try {
-      const response = await fetch(
-        `${PresentationGenerationApi.BASE_URL}/ppt/prompt-tables-extraction`,
-        {
-          method: "POST",
-          headers: getHeader(),
-          body: JSON.stringify({
-            prompt,
-          }),
-          cache: "no-cache",
-        }
-      );
-      if (response.ok) {
-        const data = await response.json();
 
-        return data;
-      } else {
-        throw new Error(`Failed to extract tables: ${response.statusText}`);
-      }
-    } catch (error) {
-      console.error("error in table extraction", error);
-      throw error;
-    }
-  }
   static async decomposeDocuments(documentKeys: string[], imageKeys: string[]) {
     try {
       const response = await fetch(
@@ -200,72 +146,6 @@ export class PresentationGenerationApi {
       }
     } catch (error) {
       console.error("error in title generation", error);
-      throw error;
-    }
-  }
-  static async chartDeplot({
-    images,
-    chart_links,
-    table_links,
-    research_reports,
-    presentation_id,
-  }: {
-    images: string[];
-    chart_links: string[];
-    table_links: string[];
-    research_reports: string[];
-    presentation_id: string;
-  }) {
-    try {
-      const response = await fetch(
-        `${PresentationGenerationApi.BASE_URL}/ppt/charts/deplot_v2`,
-        {
-          method: "POST",
-          headers: getHeader(),
-          body: JSON.stringify({
-            images: images,
-            chart_links: chart_links,
-            table_links: table_links,
-            research_reports: research_reports,
-            presentation_id: presentation_id,
-          }),
-          cache: "no-cache",
-        }
-      );
-      if (!response.ok) {
-        throw new Error(`Chart deplot failed: ${response.statusText}`);
-      }
-      const data = await response.json();
-
-      return data;
-    } catch (error) {
-      console.error("error in chart deplot", error);
-      throw error;
-    }
-  }
-
-  static async assignCharts(presentation_id: string) {
-    try {
-      const response = await fetch(
-        `${PresentationGenerationApi.BASE_URL}/ppt/charts/assign`,
-        {
-          method: "POST",
-          headers: getHeader(),
-          body: JSON.stringify({
-            presentation_id,
-          }),
-          cache: "no-cache",
-        }
-      );
-      if (response.status === 200) {
-        const data = await response.json();
-
-        return data;
-      } else {
-        throw new Error(`Failed to assign charts: ${response.statusText}`);
-      }
-    } catch (error) {
-      console.error("error in chart assignment", error);
       throw error;
     }
   }
@@ -324,58 +204,6 @@ export class PresentationGenerationApi {
       return data;
     } catch (error) {
       console.error("error in slide update", error);
-      throw error;
-    }
-  }
-  static async updateChart(presentation_id: string, charts: any) {
-    try {
-      const response = await fetch(
-        `${PresentationGenerationApi.BASE_URL}/ppt/charts/update`,
-        {
-          method: "POST",
-          headers: getHeader(),
-          body: JSON.stringify({
-            charts,
-            presentation_id,
-          }),
-          cache: "no-cache",
-        }
-      );
-      if (response.ok) {
-        const data = await response.json();
-
-        return data;
-      } else {
-        throw new Error(`Failed to update charts: ${response.statusText}`);
-      }
-    } catch (error) {
-      console.error("error in chart update", error);
-      throw error;
-    }
-  }
-  static async addNewChart(presentation_id: string, charts: any) {
-    try {
-      const response = await fetch(
-        `${PresentationGenerationApi.BASE_URL}/ppt/charts/add`,
-        {
-          method: "POST",
-          headers: getHeader(),
-          body: JSON.stringify({
-            presentation_id,
-            charts,
-          }),
-          cache: "no-cache",
-        }
-      );
-      if (response.ok) {
-        const data = await response.json();
-
-        return data;
-      } else {
-        throw new Error(`Failed to add charts: ${response.statusText}`);
-      }
-    } catch (error) {
-      console.error("error in chart addition", error);
       throw error;
     }
   }
@@ -667,70 +495,6 @@ export class PresentationGenerationApi {
       }
     } catch (error) {
       console.error("error in question generation", error);
-      throw error;
-    }
-  }
-
-  static async submitAnswers(
-    presentation_id: string,
-    answers: Array<{ question: string; answer: string }>
-  ) {
-    try {
-      const response = await fetch(
-        `${PresentationGenerationApi.BASE_URL}/ppt/answers/submit`,
-        {
-          method: "POST",
-          headers: getHeader(),
-          body: JSON.stringify({
-            presentation_id,
-            answers,
-          }),
-          cache: "no-cache",
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to submit answers");
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error("Error submitting answers:", error);
-      throw error;
-    }
-  }
-
-  static async getStoryFormats({
-    presentation_id,
-    big_idea,
-    story_type,
-  }: {
-    presentation_id: string;
-    big_idea: string | null;
-    story_type: string | null;
-  }) {
-    try {
-      const response = await fetch(
-        `${PresentationGenerationApi.BASE_URL}/ppt/story`,
-        {
-          method: "POST",
-          headers: getHeader(),
-          body: JSON.stringify({
-            presentation_id,
-            big_idea,
-            story_type,
-          }),
-          cache: "no-cache",
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch story formats");
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error("Error fetching story formats:", error);
       throw error;
     }
   }
