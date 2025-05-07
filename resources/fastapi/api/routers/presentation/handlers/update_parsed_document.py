@@ -1,11 +1,7 @@
-import uuid
 from fastapi import UploadFile
 
 from api.models import LogMetadata
 from api.services.logging import LoggingService
-from api.services.s3 import PRIVATE_BUCKET, TEMPORARY_BUCKET
-from api.utils import save_uploaded_files
-from api.services.instances import temp_file_service, s3_service
 
 
 class UpdateParsedDocumentHandler:

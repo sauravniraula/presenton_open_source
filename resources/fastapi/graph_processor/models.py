@@ -2,7 +2,6 @@ from enum import Enum
 import json
 from typing import List, Optional
 import uuid
-from langchain_text_splitters import markdown
 from openai import BaseModel
 from pydantic import Field, model_validator
 
@@ -191,18 +190,3 @@ GRAPH_TYPE_MAPPING = {
     GraphTypeEnum.line: LineChartDataModel,
     GraphTypeEnum.bubble: BubbleChartDataModel,
 }
-
-
-class TableMarkdownModel(BaseModel):
-    name: str = Field(description="Name of the table")
-    markdown: str = Field(description="Table content in markdown format")
-    description: str = Field(description="Description of table and its data")
-
-    def to_create_dict(self, presentation_id: Optional[str] = None) -> dict:
-        if presentation_id:
-            self.presentation = presentation_id
-
-        temp = self.model_dump(mode="json")
-        if not self.id:
-            del temp["id"]
-        return temp

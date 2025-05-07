@@ -1,6 +1,7 @@
 from api.models import LogMetadata
-from api.services.instances import supabase_service, s3_service
 from api.services.logging import LoggingService
+from api.sql_models import PresentationSqlModel
+from api.services.database import sql_session
 
 
 class DeletePresentationHandler:
@@ -13,7 +14,7 @@ class DeletePresentationHandler:
             logging_service.message({"presentation": self.id}),
             extra=log_metadata.model_dump(),
         )
-        await supabase_service.delete_presentation(self.id)
 
-        s3_service.delete_private_directory(self.id)
-        s3_service.delete_public_directory(self.id)
+        presentation = sql_session.get(PresentationSqlModel, self.id)
+        sql_session.delete(presentation)
+        sql_session.commit()

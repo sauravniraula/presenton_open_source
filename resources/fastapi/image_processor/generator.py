@@ -1,34 +1,17 @@
 import os
-from typing import List, Optional, Tuple
-import uuid
+from typing import List, Optional
 import aiohttp
 from fastapi import HTTPException
 import replicate
 
-from api.services.instances import temp_file_service
 from api.utils import download_file
 from ppt_generator.models.query_and_prompt_models import (
     IconCategoryEnum,
     IconQueryCollectionWithData,
     ImagePromptWithAspectRatio,
 )
-from langchain_openai import OpenAIEmbeddings
-from langchain_community.vectorstores.upstash import UpstashVectorStore
-from upstash_redis import Redis
 import json
 
-
-embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
-
-vector_store = UpstashVectorStore(
-    embedding=embeddings,
-    index_url=os.getenv("UPSTASH_VECTOR_REST_URL_ICONS"),
-    index_token=os.getenv("UPSTASH_VECTOR_REST_TOKEN_ICONS"),
-)
-
-redis = Redis(
-    url=os.getenv("UPSTASH_REDIS_REST_URL"), token=os.getenv("UPSTASH_REDIS_REST_TOKEN")
-)
 
 IMAGE_GEN_MODEL = "black-forest-labs/flux-schnell"
 IMAGE_GEN_OUTPUT_FORMAT = "jpg"
@@ -115,31 +98,32 @@ async def get_icon(input: IconQueryCollectionWithData, output_path: str) -> str:
     query = input.icon_query.queries[0]
     print(f"Request - Fetching Icon for {input.icon_query}")
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    results = redis.get(query)
-    if results:
-        print(results)
-        results = json.loads(results)
-        icon = results[0]["name"]
-        print("Icon fetched from redis")
-    else:
-        async with aiohttp.ClientSession() as client:
-            retries = 4
-            while retries:
-                try:
-                    results = await vector_store.asimilarity_search(query=query, k=20)
-                except Exception as e:
-                    print(f"Error while fetching icon: {e}")
-                    retries -= 1
-                    continue
-                break
-            if not results:
-                raise Exception("Issue with searching through icons embeddings")
-            redis.set(query, [{"name": icon.metadata["name"]} for icon in results])
-            icon = results[0].metadata["name"]
-            print("Icon fetched from vector store")
-    icon_url = (
-        f"https://presenton-icons.s3.ap-south-1.amazonaws.com/bold/{icon}-bold.png"
-    )
+    # results = redis.get(query)
+    # if results:
+    #     print(results)
+    #     results = json.loads(results)
+    #     icon = results[0]["name"]
+    #     print("Icon fetched from redis")
+    # else:
+    #     async with aiohttp.ClientSession() as client:
+    #         retries = 4
+    #         while retries:
+    #             try:
+    #                 results = await vector_store.asimilarity_search(query=query, k=20)
+    #             except Exception as e:
+    #                 print(f"Error while fetching icon: {e}")
+    #                 retries -= 1
+    #                 continue
+    #             break
+    #         if not results:
+    #             raise Exception("Issue with searching through icons embeddings")
+    #         redis.set(query, [{"name": icon.metadata["name"]} for icon in results])
+    #         icon = results[0].metadata["name"]
+    #         print("Icon fetched from vector store")
+    # icon_url = (
+    #     f"https://presenton-icons.s3.ap-south-1.amazonaws.com/bold/{icon}-bold.png"
+    # )
+    icon_url = ""
     print(f"Response - Fetched Icon for {icon_url}")
 
     success = await download_file(icon_url, output_path, {})
@@ -152,30 +136,31 @@ async def get_icon(input: IconQueryCollectionWithData, output_path: str) -> str:
 async def get_icons(
     query: str, page: int, limit: int, category: Optional[IconCategoryEnum] = None
 ) -> List[str]:
-    # Get more results than needed to have a buffer for pagination
-    fetch_limit = max(
-        20, page * limit
-    )  # Fetch at least 20 or whatever is needed for current page
-    results = redis.get(query)
-    print(results)
-    if results:
-        results = json.loads(results)
-        print("Icon fetched from redis")
-    else:
-        results = await vector_store.asimilarity_search(query=query, k=fetch_limit)
-        results = [{"name": result.metadata["name"]} for result in results]
-        redis.set(query, results)
-        print("Icon fetched from vector store")
+    # # Get more results than needed to have a buffer for pagination
+    # fetch_limit = max(
+    #     20, page * limit
+    # )  # Fetch at least 20 or whatever is needed for current page
+    # results = redis.get(query)
+    # print(results)
+    # if results:
+    #     results = json.loads(results)
+    #     print("Icon fetched from redis")
+    # else:
+    #     results = await vector_store.asimilarity_search(query=query, k=fetch_limit)
+    #     results = [{"name": result.metadata["name"]} for result in results]
+    #     redis.set(query, results)
+    #     print("Icon fetched from vector store")
 
-    # Calculate start and end indices for pagination
-    start_idx = (page - 1) * limit
-    end_idx = start_idx + limit
+    # # Calculate start and end indices for pagination
+    # start_idx = (page - 1) * limit
+    # end_idx = start_idx + limit
 
-    # Slice the results according to pagination parameters
-    paginated_results = results[start_idx:end_idx]
+    # # Slice the results according to pagination parameters
+    # paginated_results = results[start_idx:end_idx]
 
-    icons = [
-        f"https://presenton-icons.s3.ap-south-1.amazonaws.com/bold/{result['name']}-bold.png"
-        for result in paginated_results
-    ]
-    return icons
+    # icons = [
+    #     f"https://presenton-icons.s3.ap-south-1.amazonaws.com/bold/{result['name']}-bold.png"
+    #     for result in paginated_results
+    # ]
+    # return icons
+    return []

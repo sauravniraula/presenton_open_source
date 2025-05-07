@@ -1,54 +1,5 @@
 from enum import Enum
-
-from ppt_generator.slide_designs.colors import (
-    ClassicLightThemeColors,
-    Colors,
-    DarkThemeColors,
-)
-from ppt_generator.slide_designs.fonts import ClassicLightFonts, Fonts
-from ppt_generator.slide_designs.list_boxes import (
-    ClassicLightListBoxes,
-    DarkListBoxes,
-    ListBoxes,
-)
 from pydantic import BaseModel
-
-
-class PresentationTheme(Enum):
-    light = "light"
-    dark = "dark"
-    classic_light = "classic_light"
-
-    @property
-    def colors(self):
-        match self:
-            case self.light:
-                return Colors
-            case self.dark:
-                return DarkThemeColors
-            case self.classic_light:
-                return ClassicLightThemeColors
-
-    @property
-    def fonts(self):
-        match self:
-            case self.light:
-                return Fonts
-            case self.dark:
-                return Fonts
-            case self.classic_light:
-                return ClassicLightFonts
-
-    @property
-    def list_boxes(self):
-        match self:
-            case self.light:
-                return ListBoxes
-            case self.dark:
-                return DarkListBoxes
-            case self.classic_light:
-                return ClassicLightListBoxes
-
 
 # """
 # 1. contains title, description and an image.

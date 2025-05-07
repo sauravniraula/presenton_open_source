@@ -1,8 +1,6 @@
 import asyncio
-import os
 import traceback
-from typing import Coroutine, List, Optional, Tuple
-import uuid
+from typing import List, Optional
 
 import aiohttp
 from fastapi import HTTPException, UploadFile
@@ -20,26 +18,6 @@ def replace_file_name(old_name: str, new_name: str) -> str:
         return ".".join([new_name, splitted[-1]])
 
 
-def get_file_keys(
-    file_paths: List[str],
-    basepath: Optional[str] = None,
-    prefix: Optional[str] = None,
-    append_uuid_to_name: bool = False,
-):
-    file_keys = []
-    file_names = []
-    for each_file in file_paths:
-        file_name = f"{prefix}-" if prefix else ""
-        if append_uuid_to_name:
-            actual_name = os.path.basename(each_file)
-            file_name += f"{actual_name.split('.')[0]}_"
-        file_name += replace_file_name(os.path.basename(each_file), str(uuid.uuid4()))
-        file_names.append(file_name)
-        file_keys.append(os.path.join(basepath, file_name) if basepath else file_name)
-
-    return file_names, file_keys
-
-
 def save_uploaded_files(
     temp_file_service, files: List[UploadFile], file_paths: List[str], temp_dir: str
 ) -> List:
@@ -50,28 +28,6 @@ def save_uploaded_files(
         )
         full_file_paths.append(temp_file_path)
     return full_file_paths
-
-
-async def get_temporary_file_paths_from_keys(
-    s3_service, temp_file_service, file_keys: List[str], temp_dir: str
-) -> List[str]:
-    file_paths = [
-        temp_file_service.create_temp_file_path(each_key, temp_dir)
-        for each_key in file_keys
-    ]
-    await s3_service.download_temporary_files(file_keys, file_paths)
-    return file_paths
-
-
-async def get_private_file_paths_from_keys(
-    s3_service, temp_file_service, file_keys: List[str], temp_dir: str
-) -> List[str]:
-    file_paths = [
-        temp_file_service.create_temp_file_path(each_key, temp_dir)
-        for each_key in file_keys
-    ]
-    await s3_service.download_private_files(file_keys, file_paths)
-    return file_paths
 
 
 async def download_file(url: str, save_path: str, headers: Optional[dict] = None):

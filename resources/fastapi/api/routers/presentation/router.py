@@ -62,22 +62,19 @@ from api.routers.presentation.models import (
     PresentationAndUrl,
     PresentationAndUrls,
     PresentationGenerateRequest,
-    PresentationModel,
     SearchIconRequest,
     SearchImageRequest,
     UpdatePresentationThemeRequest,
-    UpdateSlideModelsRequest,
     PresentationUpdateRequest,
 )
 from api.sql_models import PresentationSqlModel
 from api.utils import handle_errors
 from ppt_generator.models.slide_model import SlideModel
-from api.services.auth import get_current_user
 
 presentation_router = APIRouter(prefix="/ppt")
 
 
-@presentation_router.get("/user_presentations", response_model=List[PresentationModel])
+@presentation_router.get("/user_presentations", response_model=List[PresentationSqlModel])
 async def get_user_presentations():
     request_utils = RequestUtils("/ppt/user_presentations")
     logging_service, log_metadata = await request_utils.initialize_logger()
@@ -245,27 +242,21 @@ async def update_presentation(
 
 
 @presentation_router.post("/slides/update", response_model=PresentationAndSlides)
-async def update_slide_models(
-    data: PresentationUpdateRequest, user_id: Annotated[str, Depends(get_current_user)]
-):
+async def update_slide_models(data: PresentationUpdateRequest):
     request_utils = RequestUtils("/ppt/slides/update")
     logging_service, log_metadata = await request_utils.initialize_logger(
         presentation_id=data.presentation_id,
-        user_id=user_id,
     )
     return await handle_errors(
-        UpdateSlideModelsHandler(data, user_id).post_new, logging_service, log_metadata
+        UpdateSlideModelsHandler(data).post, logging_service, log_metadata
     )
 
 
 @presentation_router.post("/image/generate", response_model=PresentationAndUrls)
-async def generate_image(
-    data: GenerateImageRequest, user_id: Annotated[str, Depends(get_current_user)]
-):
+async def generate_image(data: GenerateImageRequest):
     request_utils = RequestUtils("/ppt/image/generate")
     logging_service, log_metadata = await request_utils.initialize_logger(
         presentation_id=data.presentation_id,
-        user_id=user_id,
     )
     return await handle_errors(
         GenerateImageHandler(data).post, logging_service, log_metadata
@@ -273,13 +264,10 @@ async def generate_image(
 
 
 @presentation_router.post("/image/search", response_model=PresentationAndUrls)
-async def search_image(
-    data: SearchImageRequest, user_id: Annotated[str, Depends(get_current_user)]
-):
+async def search_image(data: SearchImageRequest):
     request_utils = RequestUtils("/ppt/image/search")
     logging_service, log_metadata = await request_utils.initialize_logger(
         presentation_id=data.presentation_id,
-        user_id=user_id,
     )
     return await handle_errors(
         SearchImageHandler(data).post, logging_service, log_metadata
@@ -287,13 +275,10 @@ async def search_image(
 
 
 @presentation_router.post("/icon/search", response_model=PresentationAndUrls)
-async def search_image(
-    data: SearchIconRequest, user_id: Annotated[str, Depends(get_current_user)]
-):
+async def search_icon(data: SearchIconRequest):
     request_utils = RequestUtils("/ppt/icon/search")
     logging_service, log_metadata = await request_utils.initialize_logger(
         presentation_id=data.presentation_id,
-        user_id=user_id,
     )
     return await handle_errors(
         SearchIconHandler(data).post, logging_service, log_metadata
@@ -303,43 +288,34 @@ async def search_image(
 @presentation_router.post(
     "/presentation/export_as_pptx", response_model=PresentationAndUrl
 )
-async def export_as_pptx(
-    data: ExportAsRequest, user_id: Annotated[str, Depends(get_current_user)]
-):
+async def export_as_pptx(data: ExportAsRequest):
     request_utils = RequestUtils("/ppt/presentation/export_as_pptx")
     logging_service, log_metadata = await request_utils.initialize_logger(
         presentation_id=data.presentation_id,
-        user_id=user_id,
     )
     return await handle_errors(
-        ExportAsPptxHandler(data, user_id).post, logging_service, log_metadata
+        ExportAsPptxHandler(data).post, logging_service, log_metadata
     )
 
 
 @presentation_router.post(
     "/presentation/export_as_pdf", response_model=PresentationAndUrl
 )
-async def export_as_pdf(
-    data: ExportAsRequest, user_id: Annotated[str, Depends(get_current_user)]
-):
+async def export_as_pdf(data: ExportAsRequest):
     request_utils = RequestUtils("/ppt/presentation/export_as_pdf")
     logging_service, log_metadata = await request_utils.initialize_logger(
         presentation_id=data.presentation_id,
-        user_id=user_id,
     )
     return await handle_errors(
-        ExportAsPDFHandler(data, user_id).post, logging_service, log_metadata
+        ExportAsPDFHandler(data).post, logging_service, log_metadata
     )
 
 
 @presentation_router.delete("/delete", status_code=204)
-async def delete_presentation(
-    presentation_id: str, user_id: Annotated[str, Depends(get_current_user)]
-):
+async def delete_presentation(presentation_id: str):
     request_utils = RequestUtils("/ppt/delete")
     logging_service, log_metadata = await request_utils.initialize_logger(
         presentation_id=presentation_id,
-        user_id=user_id,
     )
     return await handle_errors(
         DeletePresentationHandler(presentation_id).delete, logging_service, log_metadata
@@ -347,15 +323,10 @@ async def delete_presentation(
 
 
 @presentation_router.delete("/slide/delete", status_code=204)
-async def delete_slide(
-    slide_id: str,
-    presentation_id: str,
-    user_id: Annotated[str, Depends(get_current_user)],
-):
+async def delete_slide(slide_id: str, presentation_id: str):
     request_utils = RequestUtils("/ppt/slide/delete")
     logging_service, log_metadata = await request_utils.initialize_logger(
         presentation_id=presentation_id,
-        user_id=user_id,
     )
     return await handle_errors(
         DeleteSlideHandler(slide_id).delete, logging_service, log_metadata

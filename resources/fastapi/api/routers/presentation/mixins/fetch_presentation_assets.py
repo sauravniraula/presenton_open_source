@@ -3,7 +3,6 @@ from urllib.parse import unquote, urlparse
 import uuid
 from api.utils import download_files, replace_file_name
 from ppt_generator.models.pptx_models import PptxPictureBoxModel
-from api.services.instances import s3_service
 
 
 class FetchPresentationAssetsMixin:
@@ -21,13 +20,6 @@ class FetchPresentationAssetsMixin:
                         parsed_url = unquote(urlparse(image_path).path)
                         image_name = replace_file_name(
                             os.path.basename(parsed_url), str(uuid.uuid4())
-                        )
-                    else:
-                        image_urls.append(
-                            s3_service.get_public_bucket_public_url(image_path)
-                        )
-                        image_name = replace_file_name(
-                            os.path.basename(image_path), str(uuid.uuid4())
                         )
                     image_path = os.path.join(self.temp_dir, image_name)
                     image_local_paths.append(image_path)

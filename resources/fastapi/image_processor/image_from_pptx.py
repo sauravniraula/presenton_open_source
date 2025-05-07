@@ -2,11 +2,7 @@ import io
 import os
 import subprocess
 from typing import List
-import uuid
-import fitz
 
-from pdf2image import convert_from_path
-from api.services.instances import temp_file_service
 from image_processor.utils import get_page_images_from_pdf
 
 

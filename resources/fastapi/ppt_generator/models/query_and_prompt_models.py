@@ -4,7 +4,6 @@ from typing import Optional
 from pydantic import BaseModel
 
 from ppt_generator.models.content_type_models import IconQueryCollectionModel
-from ppt_generator.models.other_models import PresentationTheme
 
 
 class ImageAspectRatio(Enum):

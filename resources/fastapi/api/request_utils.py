@@ -2,7 +2,6 @@ from typing import Optional
 
 from api.models import LogMetadata
 from api.services.logging import LoggingService
-from api.services.instances import supabase_service
 
 
 class RequestUtils:

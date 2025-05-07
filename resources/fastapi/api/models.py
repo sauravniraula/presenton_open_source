@@ -1,7 +1,7 @@
 from typing import Optional
 from pydantic import BaseModel
 
-from api.routers.presentation.models import PresentationModel
+from api.sql_models import PresentationSqlModel
 
 
 class LogMetadata(BaseModel):
@@ -12,7 +12,7 @@ class LogMetadata(BaseModel):
 
     @classmethod
     def from_presentation(
-        cls, presentation: PresentationModel, endpoint: Optional[str] = None
+        cls, presentation: PresentationSqlModel, endpoint: Optional[str] = None
     ):
         return cls(
             presentation=presentation.id,

@@ -1,7 +1,4 @@
-import json
-import os
-import redis
-from typing import List, Optional
+from typing import Optional
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 
@@ -12,13 +9,6 @@ from ppt_generator.fix_validation_errors import get_validated_response
 # model = ChatGoogleGenerativeAI(model="gemini-2.5-flash-preview-04-17").with_structured_output(
 #     PresentationTitlesModel.model_json_schema()
 # )
-
-r = redis.Redis(
-    host=os.getenv("UPSTASH_REDIS_SCHOOL_CHAPTERS_HOST"),
-    port=6379,
-    password=os.getenv("UPSTASH_REDIS_SCHOOL_CHAPTERS_PASSWORD"),
-    ssl=True,
-)
 
 model = ChatOpenAI(model="gpt-4.1-mini").with_structured_output(
     PresentationTitlesModel.model_json_schema()

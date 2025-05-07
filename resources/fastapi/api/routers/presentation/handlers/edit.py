@@ -3,13 +3,12 @@ import os
 from typing import List, Tuple
 import uuid
 
-from fastapi import HTTPException
 from sqlmodel import select
 from api.models import LogMetadata
 from api.routers.presentation.models import (
     EditPresentationSlideRequest,
 )
-from api.services.instances import supabase_service, temp_file_service, s3_service
+from api.services.instances import temp_file_service
 from api.services.logging import LoggingService
 from image_processor.generator import generate_image, get_icon
 from ppt_generator.models.slide_model import SlideModel

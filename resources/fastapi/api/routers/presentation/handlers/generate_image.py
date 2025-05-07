@@ -1,8 +1,11 @@
 import uuid
 from api.models import LogMetadata
-from api.routers.presentation.models import GenerateImageRequest, PresentationAndUrls
+from api.routers.presentation.models import (
+    GenerateImageRequest,
+    PresentationAndPaths,
+)
 from api.services.logging import LoggingService
-from api.services.instances import temp_file_service, s3_service
+from api.services.instances import temp_file_service
 from image_processor.generator import generate_image
 
 
@@ -13,9 +16,10 @@ class GenerateImageHandler:
 
         self.session = str(uuid.uuid4())
         self.temp_dir = temp_file_service.create_temp_dir(self.session)
-    
-    def __del__(self):
-        temp_file_service.cleanup_temp_dir(self.temp_dir)
+
+        self.presentation_dir = temp_file_service.create_temp_dir(
+            self.data.presentation_id
+        )
 
     async def post(self, logging_service: LoggingService, log_metadata: LogMetadata):
 
@@ -24,11 +28,13 @@ class GenerateImageHandler:
             extra=log_metadata.model_dump(),
         )
 
-        image_path = await generate_image(self.data.prompt, self.temp_dir)
-        image_links = await s3_service.get_temporary_files_links([image_path])
+        image_path = temp_file_service.create_temp_file_path(
+            self.presentation_dir, "images", str(uuid.uuid4()).join(".jpg")
+        )
+        await generate_image(self.data.prompt, image_path)
 
-        response = PresentationAndUrls(
-            presentation_id=self.data.presentation_id, urls=image_links
+        response = PresentationAndPaths(
+            presentation_id=self.data.presentation_id, paths=[image_path]
         )
 
         logging_service.logger.info(

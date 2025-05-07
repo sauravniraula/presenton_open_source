@@ -1,5 +1,5 @@
 from typing import List, Optional
-from ppt_generator.models.other_models import PresentationTheme, SlideType
+from ppt_generator.models.other_models import SlideType
 from ppt_generator.models.query_and_prompt_models import (
     IconCategoryEnum,
     IconFrameEnum,

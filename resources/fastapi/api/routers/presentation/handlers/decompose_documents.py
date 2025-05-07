@@ -2,7 +2,6 @@ import asyncio
 from typing import List
 import uuid
 from api.models import LogMetadata
-from api.routers.presentation.mixins.process_document import ProcessDocumentMixin
 from api.routers.presentation.models import (
     DecomposeDocumentsRequest,
     DecomposeDocumentsResponse,
@@ -12,7 +11,7 @@ from api.services.logging import LoggingService
 from document_processor.loader import DocumentsLoader
 
 
-class DecomposeDocumentsHandler(ProcessDocumentMixin):
+class DecomposeDocumentsHandler:
 
     def __init__(self, data: DecomposeDocumentsRequest):
         self.data = data

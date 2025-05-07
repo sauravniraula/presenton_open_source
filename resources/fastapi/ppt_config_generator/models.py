@@ -2,10 +2,7 @@ from enum import Enum
 from typing import List, Optional
 from pydantic import BaseModel, Field
 
-from ppt_generator.models.other_models import PresentationTheme, SlideType
-from graph_processor.models import GraphModel
-
-from ppt_generator.models.content_type_models import InfographicChartModel
+from ppt_generator.models.other_models import SlideType
 
 
 class TitleWithGraphIdModel(BaseModel):
