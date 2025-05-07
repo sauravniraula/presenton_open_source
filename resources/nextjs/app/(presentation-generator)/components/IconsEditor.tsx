@@ -16,9 +16,6 @@ import { usePathname } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { updateSlideIcon } from "@/store/slices/presentationGeneration";
-import { sendMpEvent } from "@/utils/mixpanel/services";
-import { MixpanelEventName, SearchTypeEnum } from "@/utils/mixpanel/enums";
-import { useAuthCheck } from "../hooks/use-auth-check";
 
 interface IconsEditorProps {
   icon: string;
@@ -43,7 +40,6 @@ const IconsEditor = ({
   icon_prompt,
 }: IconsEditorProps) => {
   const dispatch = useDispatch();
-  const { isAuthorized } = useAuthCheck();
 
   const [icon, setIcon] = useState(initialIcon);
   const [icons, setIcons] = useState<string[]>([]);
@@ -52,7 +48,6 @@ const IconsEditor = ({
     icon_prompt?.[0] || ""
   );
   const [loading, setLoading] = useState(true);
-  const { user } = useSelector((state: RootState) => state.auth);
   const path = usePathname();
 
   useEffect(() => {
@@ -60,31 +55,22 @@ const IconsEditor = ({
   }, [initialIcon]);
 
   useEffect(() => {
-    if (user && isEditorOpen) {
+    if (isEditorOpen) {
       handleIconSearch();
     }
-  }, [user, isEditorOpen]);
+  }, [isEditorOpen]);
 
   const handleIconClick = () => {
-    if (isAuthorized) {
-      setIsEditorOpen(true);
-    }
+    setIsEditorOpen(true);
   };
 
   const handleIconSearch = async () => {
     setLoading(true);
     const presentation_id = path.split("/")[2];
     const query = searchQuery.length > 0 ? searchQuery : icon_prompt?.[0] || "";
-    sendMpEvent(MixpanelEventName.search, {
-      query,
-      search_type: SearchTypeEnum.image,
-      presentation_id,
-      page: 1,
-      limit: 40,
-    });
+
     try {
       const data = await PresentationGenerationApi.searchIcons({
-        user_id: user?.id!,
         presentation_id,
         query,
         page: 1,
@@ -92,9 +78,6 @@ const IconsEditor = ({
       });
       setIcons(data.urls);
     } catch (error) {
-      sendMpEvent(MixpanelEventName.error, {
-        error_message: "Error fetching icons",
-      });
       console.error("Error fetching icons:", error);
       setIcons([]);
     } finally {
@@ -104,12 +87,7 @@ const IconsEditor = ({
 
   const handleIconChange = (newIcon: string) => {
     const presentation_id = path.split("/")[2];
-    sendMpEvent(MixpanelEventName.slideIconChanged, {
-      presentation_id,
-      slide_index: slideIndex,
-      old_icon: icon,
-      new_icon: newIcon,
-    });
+
     setIcon(newIcon);
     dispatch(
       updateSlideIcon({ index: slideIndex, iconIdx: index, icon: newIcon })
@@ -136,7 +114,7 @@ const IconsEditor = ({
           <img
             src={
               icon.startsWith("user")
-                ? `${PresentationGenerationApi.BUCKET_URL}${icon}`
+                ? `${PresentationGenerationApi.BASE_URL}${icon}`
                 : icon
             }
             alt="slide icon"

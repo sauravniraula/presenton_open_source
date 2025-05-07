@@ -1,53 +1,56 @@
-import { useDispatch } from 'react-redux';
-import { useAuthCheck } from './use-auth-check';
-import { 
-  addSlideBodyItem, 
-  deleteSlideBodyItem, 
+import { useDispatch } from "react-redux";
+
+import {
+  addSlideBodyItem,
+  deleteSlideBodyItem,
   updateSlideVariant,
   updateSlideImage,
   deleteSlideImage,
-  
+
   // Import other slide operation actions as needed
-} from '@/store/slices/presentationGeneration';
+} from "@/store/slices/presentationGeneration";
 
 export const useSlideOperations = (slideIndex: number) => {
   const dispatch = useDispatch();
-  const { isAuthorized } = useAuthCheck();
 
-  const handleAddItem = ({item}: {item: any}) => {
-    if (!isAuthorized) return;
+  const handleAddItem = ({ item }: { item: any }) => {
     dispatch(addSlideBodyItem({ index: slideIndex, item }));
   };
 
-  const handleDeleteItem = ({itemIndex}: {itemIndex: number}) => {
-    if (!isAuthorized) return;
+  const handleDeleteItem = ({ itemIndex }: { itemIndex: number }) => {
     dispatch(deleteSlideBodyItem({ index: slideIndex, itemIdx: itemIndex }));
   };
 
-  const handleVariantChange = ({variant}: {variant: number}) => {
-    if (!isAuthorized) return;
+  const handleVariantChange = ({ variant }: { variant: number }) => {
     dispatch(updateSlideVariant({ index: slideIndex, variant }));
   };
 
-  const handleImageChange = ({imageUrl, imageIndex}: {imageUrl: string, imageIndex: number}) => {
-    if (!isAuthorized) return;
-    dispatch(updateSlideImage({ index: slideIndex, imageIdx: imageIndex, image: imageUrl }));
+  const handleImageChange = ({
+    imageUrl,
+    imageIndex,
+  }: {
+    imageUrl: string;
+    imageIndex: number;
+  }) => {
+    dispatch(
+      updateSlideImage({
+        index: slideIndex,
+        imageIdx: imageIndex,
+        image: imageUrl,
+      })
+    );
   };
-  const handleDeleteImage = ({imageIndex}: {imageIndex: number}) => {
-    if (!isAuthorized) return;
+  const handleDeleteImage = ({ imageIndex }: { imageIndex: number }) => {
     dispatch(deleteSlideImage({ index: slideIndex, imageIdx: imageIndex }));
   };
 
- 
   // Add other common slide operations here
 
   return {
-    isAuthorized,
     handleAddItem,
     handleDeleteItem,
     handleVariantChange,
     handleImageChange,
     handleDeleteImage,
-   
   };
-}; 
+};

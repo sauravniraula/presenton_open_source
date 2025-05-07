@@ -1,7 +1,7 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import {
   setError,
   setPresentationId,
@@ -18,22 +18,12 @@ import { useToast } from "@/hooks/use-toast";
 import { PresentationGenerationApi } from "../../services/api/presentation-generation";
 import { OverlayLoader } from "@/components/ui/overlay-loader";
 import Wrapper from "@/components/Wrapper";
-import { RootState } from "@/store/store";
-import { useUsageTracking } from "@/hooks/useUsageTracking";
 import { setPptGenUploadState } from "@/store/slices/presentationGenUpload";
-import {
-  LimitType,
-  MixpanelEventName,
-  ToastType,
-} from "@/utils/mixpanel/enums";
-import { sendMpEvent } from "@/utils/mixpanel/services";
 
 const UploadPage = () => {
   const router = useRouter();
   const dispatch = useDispatch();
-  const { user } = useSelector((state: RootState) => state.auth);
   const { toast } = useToast();
-  const { checkLimit, incrementUsage } = useUsageTracking();
   const [researchMode, setResearchModel] = useState<boolean>(false);
   const [documents, setDocuments] = useState<File[]>([]);
   const [images, setImages] = useState<File[]>([]);
@@ -57,10 +47,6 @@ const UploadPage = () => {
     extra_info: "",
   });
   const getPromptTablesExtraction = async () => {
-    //? Mixpanel User Tracking
-    sendMpEvent(MixpanelEventName.extractingTables, {
-      from: "prompt",
-    });
     const response = await PresentationGenerationApi.promptTablesExtraction(
       config.prompt
     );
@@ -84,17 +70,6 @@ const UploadPage = () => {
       } else {
         docs.push(file);
       }
-      //? Mixpanel User Tracking
-      sendMpEvent(
-        isImage
-          ? MixpanelEventName.selectedImage
-          : MixpanelEventName.selectedDocument,
-        {
-          file_name: file.name,
-          file_size: file.size,
-          file_type: file.type,
-        }
-      );
     });
 
     setDocuments(docs);
@@ -102,46 +77,11 @@ const UploadPage = () => {
   };
 
   const handleGeneratePresentation = async () => {
-    if (!user) {
-      //? Mixpanel User Tracking
-      sendMpEvent(MixpanelEventName.notAuthenticated);
-      sendMpEvent(MixpanelEventName.navigation, {
-        to: "/auth/login",
-      });
-      router.push("/auth/login");
-    }
-    const isLimitReached = await checkLimit("aiPresentations");
-
-    if (!isLimitReached) {
-      //? Mixpanel User Tracking
-      sendMpEvent(MixpanelEventName.limitReached, {
-        limit_type: LimitType.presentation_count,
-        limit_name: "Presentation Generation limit reached",
-      });
-      toast({
-        title: "Limit Reached",
-        description:
-          "You have reached the limit for your current plan. Please upgrade your plan to continue.",
-        variant: "destructive",
-      });
-      //? Mixpanel User Tracking
-      sendMpEvent(MixpanelEventName.navigation, {
-        to: "/profile",
-      });
-      router.push("/profile");
-      return;
-    }
-
     if (
       !config.prompt.trim() &&
       documents.length === 0 &&
       images.length === 0
     ) {
-      //? Mixpanel User Tracking
-      sendMpEvent(MixpanelEventName.toastShown, {
-        toast_type: ToastType.info,
-        toast_message: "No Prompt or Document Provided",
-      });
       toast({
         title: "No Prompt or Document Provided",
         description: " Please provide prompt or document.",
@@ -169,11 +109,6 @@ const UploadPage = () => {
 
         let hasUploadedAssets = documents.length > 0 || images.length > 0;
         if (hasUploadedAssets) {
-          //? Mixpanel User Tracking
-          sendMpEvent(MixpanelEventName.uploadingFiles, {
-            document_count: documents.length,
-            image_count: images.length,
-          });
           const uploadResponse = await PresentationGenerationApi.uploadDoc(
             documents,
             images
@@ -184,11 +119,6 @@ const UploadPage = () => {
 
         const promises: Promise<any>[] = [];
         if (researchMode) {
-          //? Mixpanel User Tracking
-          sendMpEvent(MixpanelEventName.generatingResearchReport, {
-            report_prompt: config.prompt,
-            report_language: config.language,
-          });
           promises.push(
             PresentationGenerationApi.generateResearchReport(
               config.prompt,
@@ -197,8 +127,6 @@ const UploadPage = () => {
           );
         }
         if (hasUploadedAssets) {
-          //? Mixpanel User Tracking
-          sendMpEvent(MixpanelEventName.decomposingDocuments);
           promises.push(
             PresentationGenerationApi.decomposeDocuments(
               documentKeys,
@@ -210,10 +138,6 @@ const UploadPage = () => {
           promises.push(getPromptTablesExtraction());
         }
 
-        //? Mixpanel User Tracking
-        sendMpEvent(MixpanelEventName.waitingForResponse, {
-          message: "Waiting for research report or documents to be decomposed.",
-        });
         let responses = await Promise.all(promises);
         let research: any = {};
         let processed_documents: any = {};
@@ -252,12 +176,7 @@ const UploadPage = () => {
         };
 
         dispatch(setPptGenUploadState(pptGenUpdateNewState));
-        incrementUsage("aiPresentations");
 
-        //? Mixpanel User Tracking
-        sendMpEvent(MixpanelEventName.navigation, {
-          to: "/documents-preview",
-        });
         router.push("/documents-preview");
       } else {
         setLoadingState({
@@ -277,10 +196,6 @@ const UploadPage = () => {
           sources: [],
         });
         try {
-          //? Mixpanel User Tracking
-          sendMpEvent(MixpanelEventName.generatingTitles, {
-            presentation_id: createResponse.id,
-          });
           // Start both API calls immediately in parallel
           const titlePromise = await PresentationGenerationApi.titleGeneration({
             presentation_id: createResponse.id,
@@ -296,29 +211,13 @@ const UploadPage = () => {
             description: "Please try again.",
             variant: "destructive",
           });
-          //? Mixpanel User Tracking
-          sendMpEvent(MixpanelEventName.error, {
-            error_message:
-              error instanceof Error
-                ? error.message
-                : "Unknown error in catch block",
-          });
         }
-        //? Mixpanel User Tracking
-        sendMpEvent(MixpanelEventName.navigation, {
-          to: "/theme",
-        });
+
         router.push("/theme");
       }
     } catch (error) {
       console.error("Error in presentation generation:", error);
-      //? Mixpanel User Tracking
-      sendMpEvent(MixpanelEventName.error, {
-        error_message:
-          error instanceof Error
-            ? error.message
-            : "Unknown error in catch block",
-      });
+
       dispatch(setError("Failed to generate presentation"));
       setLoadingState({
         isLoading: false,
@@ -333,13 +232,6 @@ const UploadPage = () => {
       });
     }
   };
-
-  //? Mixpanel User Tracking
-  useEffect(() => {
-    sendMpEvent(MixpanelEventName.pageOpened, {
-      page_name: "Prompt and File Upload Page",
-    });
-  }, []);
 
   return (
     <Wrapper className="pb-10 lg:max-w-[70%] xl:max-w-[65%]">

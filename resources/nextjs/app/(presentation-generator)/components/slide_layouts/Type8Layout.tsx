@@ -1,11 +1,9 @@
-import React, { useState } from "react";
+import React from "react";
 import EditableText from "../EditableText";
 import IconsEditor from "../IconsEditor";
-import { Plus, Undo } from "lucide-react";
+import { Plus } from "lucide-react";
 import ElementMenu from "../ElementMenu";
-import { useDispatch, useSelector } from "react-redux";
-import { deleteSlideBodyItem } from "@/store/slices/presentationGeneration";
-import { addSlideBodyItem } from "@/store/slices/presentationGeneration";
+import { useSelector } from "react-redux";
 import { RootState } from "@/store/store";
 import { useSlideOperations } from "../../hooks/use-slide-operations";
 import SlideFooter from "./SlideFooter";
@@ -32,10 +30,8 @@ const Type8Layout = ({
   slideId,
   icon_queries,
 }: Type6LayoutProps) => {
-  const dispatch = useDispatch();
   const { currentColors } = useSelector((state: RootState) => state.theme);
-  const { isAuthorized, handleAddItem, handleDeleteItem } =
-    useSlideOperations(slideIndex);
+  const { handleAddItem, handleDeleteItem } = useSlideOperations(slideIndex);
 
   const AddItem = () => {
     if (body.length < 3) {

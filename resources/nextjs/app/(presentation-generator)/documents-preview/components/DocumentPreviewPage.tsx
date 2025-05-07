@@ -16,8 +16,6 @@ import Header from "@/app/dashboard/components/Header";
 import MarkdownRenderer from "./MarkdownRenderer";
 import { fetchTextFromURL } from "../../utils/download";
 import { getIconFromFile, removeUUID } from "../../utils/others";
-import { sendMpEvent } from "@/utils/mixpanel/services";
-import { MixpanelEventName } from "@/utils/mixpanel/enums";
 import { ChevronRight, PanelRightOpen, X } from "lucide-react";
 import ToolTip from "@/components/ToolTip";
 
@@ -63,10 +61,6 @@ const DocumentsPreviewPage: React.FC = () => {
 
   const updateText = (value: string) => {
     if (selectedDocument) {
-      //? Mixpanel User Tracking
-      sendMpEvent(MixpanelEventName.documentEdited, {
-        document_key: selectedDocument,
-      });
       textContents[selectedDocument] = value;
       if (!changedDocuments.includes(selectedDocument)) {
         changedDocuments.push(selectedDocument);
@@ -95,10 +89,7 @@ const DocumentsPreviewPage: React.FC = () => {
         promises.push(fetchTextFromURL(reports[each]));
       }
     }
-    //? Mixpanel User Tracking
-    sendMpEvent(MixpanelEventName.downloadingDocuments, {
-      document_keys: newDocuments,
-    });
+
     setDownloadingDocuments(newDocuments);
     const results = await Promise.all(promises);
     for (let i = 0; i < newDocuments.length; i++) {
@@ -107,21 +98,10 @@ const DocumentsPreviewPage: React.FC = () => {
     // setTextContents(textContents)
     setDownloadingDocuments([]);
   };
-  useEffect(() => {
-    setSelectedDocument(allSources[0]);
-    mantainDocumentTexts();
-    //? Mixpanel User Tracking
-    sendMpEvent(MixpanelEventName.pageOpened, {
-      page_name: "Documents Preview Page",
-    });
-  }, []);
 
   const saveDocuments = async () => {
     const promises: Promise<any>[] = [];
-    //? Mixpanel User Tracking
-    sendMpEvent(MixpanelEventName.savingDocuments, {
-      document_keys: changedDocuments,
-    });
+
     for (const each of changedDocuments) {
       const blob = new Blob([textContents[each]], { type: "text/plain" });
       const file = new File([blob], "document.txt", { type: "text/plain" });
@@ -151,21 +131,9 @@ const DocumentsPreviewPage: React.FC = () => {
     formData.append("file", file);
 
     try {
-      //? Mixpanel User Tracking
-      sendMpEvent(MixpanelEventName.savingDocument, {
-        document_key: path,
-        is_private: isPrivate,
-      });
       const data = await PresentationGenerationApi.updateDocuments(formData);
       return data;
     } catch (error) {
-      //? Mixpanel User Tracking
-      sendMpEvent(MixpanelEventName.error, {
-        error_message:
-          error instanceof Error
-            ? error.message
-            : "Unknown error in catch block",
-      });
       console.error("Error uploading document:", error);
       throw error;
     }
@@ -197,8 +165,7 @@ const DocumentsPreviewPage: React.FC = () => {
 
       // Prepare document paths
       const documentPaths = documentKeys.map((key) => documents[key][0]);
-      //? Mixpanel User Tracking
-      sendMpEvent(MixpanelEventName.fetchingQuestions);
+
       const createResponse = await PresentationGenerationApi.getQuestions({
         prompt: config?.prompt ?? "",
         n_slides: config?.slides ? parseInt(config.slides) : null,
@@ -210,10 +177,6 @@ const DocumentsPreviewPage: React.FC = () => {
         sources: allSources,
       });
       try {
-        //? Mixpanel User Tracking
-        sendMpEvent(MixpanelEventName.generatingTitles, {
-          presentation_id: createResponse.id,
-        });
         // Start both API calls immediately in parallel
         const titlePromise = await PresentationGenerationApi.titleGeneration({
           presentation_id: createResponse.id,
@@ -235,22 +198,8 @@ const DocumentsPreviewPage: React.FC = () => {
           description: "Please try again.",
           variant: "destructive",
         });
-        //? Mixpanel User Tracking
-        sendMpEvent(MixpanelEventName.error, {
-          error_message:
-            error instanceof Error
-              ? error.message
-              : "Unknown error in catch block",
-        });
       }
     } catch (error) {
-      //? Mixpanel User Tracking
-      sendMpEvent(MixpanelEventName.error, {
-        error_message:
-          error instanceof Error
-            ? error.message
-            : "Unknown error in catch block",
-      });
       console.error("Error in presentation creation:", error);
       toast({
         title: "Error in presentation creation.",

@@ -6,8 +6,7 @@ export class PresentationGenerationApi {
   // static BASE_URL="https://presentation-generator-fragrant-mountain-1643.fly.dev";
   // static BASE_URL =
   //   "https://presentation-generator-wandering-night-8649.fly.dev";
-  static BASE_URL = "http://localhost:8000";
-  static BUCKET_URL = "https://s3.ap-south-1.amazonaws.com/pptgen-public-v2/";
+  static BASE_URL = "http://localhost:48388";
 
   static async getChapterDetails() {
     try {
@@ -540,7 +539,7 @@ export class PresentationGenerationApi {
 
         return {
           ...data,
-          url: `${PresentationGenerationApi.BUCKET_URL}${data.url}`,
+          url: `${PresentationGenerationApi.BASE_URL}${data.url}`,
         };
       } else {
         throw new Error(`Failed to export as pptx: ${response.statusText}`);

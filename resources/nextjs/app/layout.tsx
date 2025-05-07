@@ -6,7 +6,6 @@ import { Providers } from "./providers";
 import { Toaster } from "@/components/ui/toaster";
 import Script from "next/script";
 import { GoogleTagManager } from "@next/third-parties/google";
-import { Initializer } from "./initializer";
 
 const fraunces = Fraunces({
   subsets: ["latin"],
@@ -185,46 +184,8 @@ export default function RootLayout({
       <body
         className={`$ ${neueMontreal.variable} ${satoshi.variable} ${switzer.variable} ${inter.variable} ${fraunces.variable} ${montserrat.variable} ${inria_serif.variable} antialiased`}
       >
-        <GoogleTagManager gtmId="GTM-53K6PVCF" />
-        <Initializer />
         <Providers>{children}</Providers>
         <Toaster />
-        <Script id="clarity-script" strategy="afterInteractive">
-          {`
-            (function(c,l,a,r,i,t,y){
-              c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-              t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-              y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-          })(window, document, "clarity", "script", "p3n3njx00v");
-          `}
-        </Script>
-        <Script
-          async
-          src="https://www.googletagmanager.com/gtag/js?id=AW-11502098697"
-        ></Script>
-        <Script>
-          {`
-              window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'AW-11502098697');
-            `}
-        </Script>
-
-        {/* <Script id="tawk-script" strategy="afterInteractive">
-          {`
-            var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
-            (function(){
-              var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
-              s1.async=true;
-              s1.src='https://embed.tawk.to/674c9e8a4304e3196aeb2229/1ie1kmk1o';
-              s1.charset='UTF-8';
-              s1.setAttribute('crossorigin','*');
-              s0.parentNode.insertBefore(s1,s0);
-            })();
-          `}
-        </Script> */}
       </body>
     </html>
   );

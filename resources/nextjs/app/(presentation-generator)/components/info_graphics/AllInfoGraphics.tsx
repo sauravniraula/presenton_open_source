@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { getPercentage, ICON_LIST, IconMapper } from "../slide_config";
+
 import {
   Sheet,
   SheetContent,
@@ -21,7 +21,7 @@ import { Button } from "@/components/ui/button";
 import { useDispatch, useSelector } from "react-redux";
 import { updateInfographicsChart } from "@/store/slices/presentationGeneration";
 import { RootState } from "@/store/store";
-import { useAuthCheck } from "../../hooks/use-auth-check";
+import { getPercentage, ICON_LIST, IconMapper } from "../../utils/IconList";
 
 type Chart = {
   chart_type: string;
@@ -71,7 +71,6 @@ const AllInfoGraphics = ({
   const [lineWeight, setLineWeight] = useState(20);
   const [selectedIcon, setSelectedIcon] = useState(chart.icon || "star");
   const [chartType, setChartType] = useState(chart.chart_type);
-  const { isAuthorized } = useAuthCheck();
 
   // State for both percentage and fraction
   const [percentageValue, setPercentageValue] = useState(
@@ -214,11 +213,9 @@ const AllInfoGraphics = ({
   };
 
   const handleInfographicClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (isAuthorized) {
-      e.stopPropagation();
-      if (chartType !== "text") {
-        setIsEditingOpen(true);
-      }
+    e.stopPropagation();
+    if (chartType !== "text") {
+      setIsEditingOpen(true);
     }
   };
 
@@ -280,7 +277,6 @@ const AllInfoGraphics = ({
         )}
         {chartType === "text" && (
           <TextInfographic
-            isAuthorized={isAuthorized}
             dispatch={dispatch}
             slideIndex={slideIndex}
             itemIndex={itemIndex}
@@ -694,7 +690,6 @@ export function ProgressBar({
   );
 }
 export function TextInfographic({
-  isAuthorized,
   dispatch,
   iconBg,
   slideIndex,
@@ -703,7 +698,6 @@ export function TextInfographic({
   suffix,
   numerical,
 }: {
-  isAuthorized: boolean;
   dispatch: any;
   slideIndex: number;
   itemIndex: number;
@@ -762,7 +756,7 @@ export function TextInfographic({
               },
             });
           }}
-          contentEditable={isAuthorized}
+          contentEditable={true}
           suppressContentEditableWarning
           className="text-base md:text-[24px] focus-visible:outline-none leading-[40px] font-bold"
         >
@@ -783,7 +777,7 @@ export function TextInfographic({
               },
             });
           }}
-          contentEditable={isAuthorized}
+          contentEditable={true}
           suppressContentEditableWarning
           className="text-base  md:text-[20px] cursor-text focus-visible:outline-none leading-[24px] font-bold"
         >
