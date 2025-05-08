@@ -1,3 +1,15 @@
+/**
+ * UploadPage Component
+ * 
+ * This component handles the presentation generation upload process, allowing users to:
+ * - Configure presentation settings (slides, language)
+ * - Input prompts
+ * - Upload supporting documents and images
+ * - Generate presentations with or without research mode
+ * 
+ * @component
+ */
+
 "use client";
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -12,7 +24,6 @@ import { PromptInput } from "./PromptInput";
 import { PresentationConfig } from "../type";
 import SupportingDoc from "./SupportingDoc";
 import { Button } from "@/components/ui/button";
-
 import { ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { PresentationGenerationApi } from "../../services/api/presentation-generation";
@@ -20,10 +31,44 @@ import { OverlayLoader } from "@/components/ui/overlay-loader";
 import Wrapper from "@/components/Wrapper";
 import { setPptGenUploadState } from "@/store/slices/presentationGenUpload";
 
+// Types for loading state
+interface LoadingState {
+  isLoading: boolean;
+  message: string;
+  duration?: number;
+  showProgress?: boolean;
+  extra_info?: string;
+}
+
+// API Response Types
+interface ResearchResponse {
+  key: string;
+  url: string;
+}
+
+interface DecomposedResponse {
+  documents: Record<string, any>;
+  images: Record<string, any>;
+  charts: Record<string, any>;
+  tables: Record<string, any>;
+}
+
+interface ProcessedData {
+  config: PresentationConfig;
+  reports: Record<string, string>;
+  documents: Record<string, any>;
+  images: Record<string, any>;
+  charts: Record<string, any>;
+  tables: Record<string, any>;
+
+}
+
 const UploadPage = () => {
   const router = useRouter();
   const dispatch = useDispatch();
   const { toast } = useToast();
+
+  // State management
   const [researchMode, setResearchModel] = useState<boolean>(false);
   const [documents, setDocuments] = useState<File[]>([]);
   const [images, setImages] = useState<File[]>([]);
@@ -33,13 +78,7 @@ const UploadPage = () => {
     prompt: "",
   });
 
-  const [loadingState, setLoadingState] = useState<{
-    isLoading: boolean;
-    message: string;
-    duration?: number;
-    showProgress?: boolean;
-    extra_info?: string;
-  }>({
+  const [loadingState, setLoadingState] = useState<LoadingState>({
     isLoading: false,
     message: "",
     duration: 4,
@@ -47,173 +86,203 @@ const UploadPage = () => {
     extra_info: "",
   });
 
-  // Handlers for presentation config
+  /**
+   * Updates the presentation configuration
+   * @param key - Configuration key to update
+   * @param value - New value for the configuration
+   */
   const handleConfigChange = (key: keyof PresentationConfig, value: string) => {
     setConfig((prev) => ({ ...prev, [key]: value }));
   };
 
+  /**
+   * Handles file uploads and separates them into documents and images
+   * @param newFiles - Array of files to process
+   */
   const handleFilesChange = (newFiles: File[]) => {
-    // Separate files based on type
-    const docs: File[] = [];
-    const imgs: File[] = [];
-
-    newFiles.forEach((file) => {
-      const isImage = file.type?.startsWith("image/");
-      if (isImage) {
-        imgs.push(file);
-      } else {
-        docs.push(file);
-      }
-    });
+    const { docs, imgs } = newFiles.reduce(
+      (acc, file) => {
+        const isImage = file.type?.startsWith("image/");
+        isImage ? acc.imgs.push(file) : acc.docs.push(file);
+        return acc;
+      },
+      { docs: [] as File[], imgs: [] as File[] }
+    );
 
     setDocuments(docs);
     setImages(imgs);
   };
 
-  const handleGeneratePresentation = async () => {
-    if (
-      !config.prompt.trim() &&
-      documents.length === 0 &&
-      images.length === 0
-    ) {
+  /**
+   * Validates the current configuration and files
+   * @returns boolean indicating if the configuration is valid
+   */
+  const validateConfiguration = (): boolean => {
+    if (!config.language || !config.slides) {
+      toast({
+        title: "Please select number of Slides & Language",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    if (!config.prompt.trim() && documents.length === 0 && images.length === 0) {
       toast({
         title: "No Prompt or Document Provided",
-        description: " Please provide prompt or document.",
         variant: "destructive",
       });
-      return;
+      return false;
     }
+
+    return true;
+  };
+
+  /**
+   * Handles the presentation generation process
+   */
+  const handleGeneratePresentation = async () => {
+    if (!validateConfiguration()) return;
 
     try {
-      if (researchMode || documents.length > 0 || images.length > 0) {
-        setLoadingState({
-          isLoading: true,
-          message: researchMode
-            ? "Creating research report..."
-            : "Processing documents...",
-          showProgress: true,
-          duration: researchMode ? 80 : 90,
-          extra_info:
-            documents.length > 0
-              ? "It might take a few minutes for large documents."
-              : "",
-        });
-        let documentKeys = [];
-        let imageKeys = [];
+      const hasUploadedAssets = documents.length > 0 || images.length > 0;
 
-        let hasUploadedAssets = documents.length > 0 || images.length > 0;
-        if (hasUploadedAssets) {
-          const uploadResponse = await PresentationGenerationApi.uploadDoc(
-            documents,
-            images
-          );
-          documentKeys = uploadResponse["documents"];
-          imageKeys = uploadResponse["images"];
-        }
-
-        const promises: Promise<any>[] = [];
-        if (researchMode) {
-          promises.push(
-            PresentationGenerationApi.generateResearchReport(
-              config.prompt,
-              config.language
-            )
-          );
-        }
-        if (hasUploadedAssets) {
-          promises.push(
-            PresentationGenerationApi.decomposeDocuments(
-              documentKeys,
-              imageKeys
-            )
-          );
-        }
-
-        let responses = await Promise.all(promises);
-        let research: any = {};
-        let processed_documents: any = {};
-        let processed_images: any = {};
-        let extracted_charts: any = {};
-        let extracted_tables: any = {};
-
-        if (researchMode) {
-          let researchResponse = responses.shift();
-
-          research[researchResponse["key"]] = researchResponse["url"];
-        }
-        if (hasUploadedAssets) {
-          let decomposedResponse = responses.shift();
-
-          processed_documents = decomposedResponse["documents"];
-          processed_images = decomposedResponse["images"];
-          extracted_charts = decomposedResponse["charts"];
-          extracted_tables = decomposedResponse["tables"];
-        }
-
-        const pptGenUpdateNewState = {
-          config: config,
-          reports: research,
-          documents: processed_documents,
-          images: processed_images,
-          charts: extracted_charts,
-          tables: extracted_tables,
-          questions: [],
-        };
-        dispatch(setPptGenUploadState(pptGenUpdateNewState));
-        router.push("/documents-preview");
+      if (researchMode || hasUploadedAssets) {
+        await handleResearchAndDocumentProcessing();
       } else {
-        setLoadingState({
-          isLoading: true,
-          message: "Generating outlines...",
-          showProgress: true,
-          duration: 30,
-        });
-        const createResponse = await PresentationGenerationApi.getQuestions({
-          prompt: config?.prompt ?? "",
-          n_slides: config?.slides ? parseInt(config.slides) : null,
-
-          documents: [],
-          images: [],
-          research_reports: [],
-          language: config?.language ?? "",
-          sources: [],
-        });
-        try {
-          // Start both API calls immediately in parallel
-          const titlePromise = await PresentationGenerationApi.titleGeneration({
-            presentation_id: createResponse.id,
-          });
-          dispatch(setPresentationId(titlePromise.id));
-          dispatch(setTitles(titlePromise.titles));
-
-          router.push("/theme");
-        } catch (error) {
-          console.error("Error in title generation:", error);
-          toast({
-            title: "Error in title generation.",
-            description: "Please try again.",
-            variant: "destructive",
-          });
-        }
-
-        router.push("/theme");
+        await handleDirectPresentationGeneration();
       }
     } catch (error) {
-      console.error("Error in presentation generation:", error);
+      handleGenerationError(error);
+    }
+  };
 
-      dispatch(setError("Failed to generate presentation"));
-      setLoadingState({
-        isLoading: false,
-        message: "",
-        duration: 0,
-        showProgress: false,
+  /**
+   * Handles research mode and document processing
+   */
+  const handleResearchAndDocumentProcessing = async () => {
+    setLoadingState({
+      isLoading: true,
+      message: researchMode ? "Creating research report..." : "Processing documents...",
+      showProgress: true,
+      duration: researchMode ? 80 : 90,
+      extra_info: documents.length > 0 ? "It might take a few minutes for large documents." : "",
+    });
+
+    let documentKeys = [];
+    let imageKeys = [];
+
+    if (documents.length > 0 || images.length > 0) {
+      const uploadResponse = await PresentationGenerationApi.uploadDoc(documents, images);
+      documentKeys = uploadResponse["documents"];
+      imageKeys = uploadResponse["images"];
+    }
+
+    const promises: Promise<any>[] = [];
+    if (researchMode) {
+      promises.push(
+        PresentationGenerationApi.generateResearchReport(config.prompt, config.language)
+      );
+    }
+    if (documents.length > 0 || images.length > 0) {
+      promises.push(
+        PresentationGenerationApi.decomposeDocuments(documentKeys, imageKeys)
+      );
+    }
+
+    const responses = await Promise.all(promises);
+    const processedData = processApiResponses(responses, researchMode);
+
+    dispatch(setPptGenUploadState(processedData));
+    router.push("/documents-preview");
+  };
+
+  /**
+   * Processes API responses and formats data for state update
+   */
+  const processApiResponses = (responses: (ResearchResponse | DecomposedResponse)[], isResearchMode: boolean): ProcessedData => {
+    const result: ProcessedData = {
+      config,
+      reports: {},
+      documents: {},
+      images: {},
+      charts: {},
+      tables: {},
+
+    };
+
+    if (isResearchMode) {
+      const researchResponse = responses.shift() as ResearchResponse;
+      result.reports[researchResponse.key] = researchResponse.url;
+    }
+
+    if (responses.length > 0) {
+      const decomposedResponse = responses.shift() as DecomposedResponse;
+      Object.assign(result, {
+        documents: decomposedResponse.documents,
+        images: decomposedResponse.images,
+        charts: decomposedResponse.charts,
+        tables: decomposedResponse.tables,
       });
+    }
+
+    return result;
+  };
+
+  /**
+   * Handles direct presentation generation without research or documents
+   */
+  const handleDirectPresentationGeneration = async () => {
+    setLoadingState({
+      isLoading: true,
+      message: "Generating outlines...",
+      showProgress: true,
+      duration: 30,
+    });
+
+    const createResponse = await PresentationGenerationApi.getQuestions({
+      prompt: config?.prompt ?? "",
+      n_slides: config?.slides ? parseInt(config.slides) : null,
+      documents: [],
+      images: [],
+      research_reports: [],
+      language: config?.language ?? "",
+      sources: [],
+    });
+
+    try {
+      const titlePromise = await PresentationGenerationApi.titleGeneration({
+        presentation_id: createResponse.id,
+      });
+      dispatch(setPresentationId(titlePromise.id));
+      dispatch(setTitles(titlePromise.titles));
+      router.push("/theme");
+    } catch (error) {
+      console.error("Error in title generation:", error);
       toast({
-        title: "Error",
-        description: "Failed to generate presentation. Please try again.",
+        title: "Error in title generation.",
+        description: "Please try again.",
         variant: "destructive",
       });
     }
+  };
+
+  /**
+   * Handles errors during presentation generation
+   */
+  const handleGenerationError = (error: any) => {
+    console.error("Error in presentation generation:", error);
+    dispatch(setError("Failed to generate presentation"));
+    setLoadingState({
+      isLoading: false,
+      message: "",
+      duration: 0,
+      showProgress: false,
+    });
+    toast({
+      title: "Error",
+      description: "Failed to generate presentation. Please try again.",
+      variant: "destructive",
+    });
   };
 
   return (

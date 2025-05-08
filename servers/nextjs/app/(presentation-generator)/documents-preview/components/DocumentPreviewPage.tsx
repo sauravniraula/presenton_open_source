@@ -1,13 +1,26 @@
+/**
+ * DocumentPreviewPage Component
+ * 
+ * A component that displays and manages document previews for presentation generation.
+ * Features:
+ * - Document content preview with markdown support
+ * - Sidebar navigation for documents, reports, and images
+ * - Document content editing and saving
+ * - Tables and charts display
+ * - Presentation generation workflow
+ * 
+ * @component
+ */
+
 "use client";
 
 import styles from "../styles/main.module.css";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { OverlayLoader } from "@/components/ui/overlay-loader";
 import { PresentationGenerationApi } from "../../services/api/presentation-generation";
-import { setTitles } from "@/store/slices/presentationGeneration";
+import { setTitles, setPresentationId } from "@/store/slices/presentationGeneration";
 import { useDispatch, useSelector } from "react-redux";
-import { setPresentationId } from "@/store/slices/presentationGeneration";
 import { useRouter } from "next/navigation";
 import { RootState } from "@/store/store";
 import { Button } from "@/components/ui/button";
@@ -19,100 +32,122 @@ import { getIconFromFile, removeUUID } from "../../utils/others";
 import { ChevronRight, PanelRightOpen, X } from "lucide-react";
 import ToolTip from "@/components/ToolTip";
 
+// Types
+interface LoadingState {
+  message: string;
+  show: boolean;
+  duration: number;
+  progress: boolean;
+}
+
+interface TextContents {
+  [key: string]: string;
+}
+
+interface DocumentData {
+  [key: string]: [string, string]; // [path, url]
+}
+
+interface ImageData {
+  [key: string]: string;
+}
+
+interface ChartData {
+  [key: string]: Array<{ markdown?: string }>;
+}
+
+interface TableData {
+  [key: string]: Array<{ markdown?: string }>;
+}
+
 const DocumentsPreviewPage: React.FC = () => {
+  // Hooks
   const dispatch = useDispatch();
   const router = useRouter();
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Redux state
   const { config, reports, documents, images, charts, tables } = useSelector(
     (state: RootState) => state.pptGenUpload
   );
 
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const [textContents, setTextContents] = useState<any>({});
+  // Local state
+  const [textContents, setTextContents] = useState<TextContents>({});
   const [selectedDocument, setSelectedDocument] = useState<string | null>(null);
-  const [downloadingDocuments, setDownloadingDocuments] = useState<string[]>(
-    []
-  );
+  const [downloadingDocuments, setDownloadingDocuments] = useState<string[]>([]);
   const [isOpen, setIsOpen] = useState(true);
   const [changedDocuments, setChangedDocuments] = useState<string[]>([]);
-
-  const [showLoading, setShowLoading] = useState({
+  const [showLoading, setShowLoading] = useState<LoadingState>({
     message: "",
     show: false,
     duration: 10,
     progress: false,
   });
 
-  const reportKeys = Object.keys(reports);
-  const documentKeys = Object.keys(documents);
-  const imageKeys = Object.keys(images);
+  // Memoized values
+  const reportKeys = useMemo(() => Object.keys(reports), [reports]);
+  const documentKeys = useMemo(() => Object.keys(documents), [documents]);
+  const imageKeys = useMemo(() => Object.keys(images), [images]);
+  const allSources = useMemo(
+    () => [...reportKeys, ...documentKeys, ...imageKeys],
+    [reportKeys, documentKeys, imageKeys]
+  );
 
-  const allSources = [...reportKeys, ...documentKeys, ...imageKeys];
-
-  const updateText = (value: string) => {
+  // Callbacks
+  const updateText = useCallback((value: string) => {
     if (selectedDocument) {
-      textContents[selectedDocument] = value;
-      if (!changedDocuments.includes(selectedDocument)) {
-        changedDocuments.push(selectedDocument);
-      }
-    }
-  };
-  const updateSelectedDocument = (value: string) => {
-    setSelectedDocument(value);
-    if (textareaRef.current) {
-      textareaRef.current.value = textContents[value];
-    }
-  };
-
-  const mantainDocumentTexts = async () => {
-    let promises: Promise<string>[] = [];
-    let newDocuments = [];
-    for (const each of documentKeys) {
-      if (!(each in textContents)) {
-        newDocuments.push(each);
-        promises.push(fetchTextFromURL(documents[each][1]));
-      }
-    }
-    for (const each of reportKeys) {
-      if (!(each in textContents)) {
-        newDocuments.push(each);
-        promises.push(fetchTextFromURL(reports[each]));
-      }
-    }
-
-    setDownloadingDocuments(newDocuments);
-    const results = await Promise.all(promises);
-    for (let i = 0; i < newDocuments.length; i++) {
-      textContents[newDocuments[i]] = results[i];
-    }
-    // setTextContents(textContents)
-    setDownloadingDocuments([]);
-  };
-  useEffect(() => {
-    setSelectedDocument(allSources[0]);
-    mantainDocumentTexts();
-  }, []);
-  const saveDocuments = async () => {
-    const promises: Promise<any>[] = [];
-
-    for (const each of changedDocuments) {
-      const blob = new Blob([textContents[each]], { type: "text/plain" });
-      const file = new File([blob], "document.txt", { type: "text/plain" });
-
-      const isReport = reportKeys.includes(each);
-      promises.push(
-        sendUploadDocumentRequest(
-          isReport ? each : documents[each][0],
-          isReport,
-          file
-        )
+      setTextContents(prev => ({
+        ...prev,
+        [selectedDocument]: value
+      }));
+      setChangedDocuments(prev =>
+        prev.includes(selectedDocument) ? prev : [...prev, selectedDocument]
       );
     }
-    if (promises.length > 0) {
-      await Promise.all(promises);
-    }
-  };
+  }, [selectedDocument]);
 
-  const sendUploadDocumentRequest = async (
+  const updateSelectedDocument = useCallback((value: string) => {
+    setSelectedDocument(value);
+    if (textareaRef.current) {
+      textareaRef.current.value = textContents[value] || '';
+    }
+  }, [textContents]);
+
+  const maintainDocumentTexts = useCallback(async () => {
+    const newDocuments: string[] = [];
+    const promises: Promise<string>[] = [];
+
+    // Process documents
+    documentKeys.forEach(key => {
+      if (!(key in textContents)) {
+        newDocuments.push(key);
+        promises.push(fetchTextFromURL(documents[key][1]));
+      }
+    });
+
+    // Process reports
+    reportKeys.forEach(key => {
+      if (!(key in textContents)) {
+        newDocuments.push(key);
+        promises.push(fetchTextFromURL(reports[key]));
+      }
+    });
+
+    if (promises.length > 0) {
+      setDownloadingDocuments(newDocuments);
+      const results = await Promise.all(promises);
+      setTextContents(prev => {
+        const newContents = { ...prev };
+        newDocuments.forEach((key, index) => {
+          newContents[key] = results[index];
+        });
+        return newContents;
+      });
+      setDownloadingDocuments([]);
+    }
+  }, [documentKeys, reportKeys, textContents, documents, reports]);
+
+  const sendUploadDocumentRequest = useCallback(async (
     path: string,
     isPrivate: boolean,
     file: File
@@ -123,28 +158,39 @@ const DocumentsPreviewPage: React.FC = () => {
     formData.append("file", file);
 
     try {
-      const data = await PresentationGenerationApi.updateDocuments(formData);
-      return data;
+      return await PresentationGenerationApi.updateDocuments(formData);
     } catch (error) {
       console.error("Error uploading document:", error);
       throw error;
     }
-  };
-  const documentTablesAndCharts = () => {
-    if (selectedDocument == null) {
-      return [];
-    }
-    let images: string[] = [];
-    if (selectedDocument in tables) {
-      images = images.concat(tables[selectedDocument]);
-    }
-    if (selectedDocument in charts) {
-      images = images.concat(charts[selectedDocument]);
-    }
-    return images;
-  };
+  }, []);
 
-  const handleCreatePresentation = async () => {
+  const saveDocuments = useCallback(async () => {
+    const promises = changedDocuments.map(each => {
+      const blob = new Blob([textContents[each]], { type: "text/plain" });
+      const file = new File([blob], "document.txt", { type: "text/plain" });
+      const isReport = reportKeys.includes(each);
+      return sendUploadDocumentRequest(
+        isReport ? each : documents[each][0],
+        isReport,
+        file
+      );
+    });
+
+    if (promises.length > 0) {
+      await Promise.all(promises);
+    }
+  }, [changedDocuments, textContents, reportKeys, documents, sendUploadDocumentRequest]);
+
+  const documentTablesAndCharts = useCallback(() => {
+    if (!selectedDocument) return [];
+
+    const tablesList = tables[selectedDocument] || [];
+    const chartsList = charts[selectedDocument] || [];
+    return [...tablesList, ...chartsList];
+  }, [selectedDocument, tables, charts]);
+
+  const handleCreatePresentation = useCallback(async () => {
     try {
       setShowLoading({
         message: "Generating presentation outline...",
@@ -152,36 +198,34 @@ const DocumentsPreviewPage: React.FC = () => {
         duration: 40,
         progress: true,
       });
-      // Markdown are now READ ONLY
-      // await saveDocuments();
 
-      // Prepare document paths
-      const documentPaths = documentKeys.map((key) => documents[key][0]);
+      const documentPaths = documentKeys.map(key => documents[key][0]);
 
       const createResponse = await PresentationGenerationApi.getQuestions({
         prompt: config?.prompt ?? "",
         n_slides: config?.slides ? parseInt(config.slides) : null,
-
         documents: documentPaths,
         images: imageKeys,
         research_reports: reportKeys,
         language: config?.language ?? "",
         sources: allSources,
       });
+
       try {
-        // Start both API calls immediately in parallel
         const titlePromise = await PresentationGenerationApi.titleGeneration({
           presentation_id: createResponse.id,
         });
-        dispatch(setPresentationId(titlePromise.id)); // Update Redux store with presentation ID
-        dispatch(setTitles(titlePromise.titles)); // Update Redux store with titles
-        // Hide loading
+
+        dispatch(setPresentationId(titlePromise.id));
+        dispatch(setTitles(titlePromise.titles));
+
         setShowLoading({
           message: "",
           show: false,
           duration: 0,
           progress: false,
         });
+
         router.push("/theme");
       } catch (error) {
         console.error("Error in title generation:", error);
@@ -212,227 +256,185 @@ const DocumentsPreviewPage: React.FC = () => {
         progress: false,
       });
     }
+  }, [config, documentKeys, documents, imageKeys, reportKeys, allSources, dispatch, router]);
+
+  // Effects
+  useEffect(() => {
+    if (allSources.length > 0) {
+      setSelectedDocument(allSources[0]);
+      maintainDocumentTexts();
+    }
+  }, [allSources, maintainDocumentTexts]);
+
+  // Render helpers
+  const renderDocumentContent = () => {
+    if (!selectedDocument) return null;
+
+    const isDocument = documentKeys.includes(selectedDocument);
+    const isReport = reportKeys.includes(selectedDocument);
+    const hasTablesAndCharts = documentTablesAndCharts().length > 0;
+
+    if (!isDocument && !isReport) return null;
+
+    return (
+      <div className="h-full mr-4">
+        <div className={`overflow-y-auto hide-scrollbar ${hasTablesAndCharts ? "h-[calc(100vh-300px)]" : "h-full"
+          }`}>
+          <div className="h-full w-full max-w-full flex flex-col mb-5">
+            <h1 className="text-2xl font-medium mb-5">Content:</h1>
+            {downloadingDocuments.includes(selectedDocument) ? (
+              <Skeleton className="w-full h-full" />
+            ) : (
+              <MarkdownRenderer content={textContents[selectedDocument] || ""} />
+            )}
+          </div>
+        </div>
+        {hasTablesAndCharts && (
+          <div className="py-4">
+            <h1 className="text-2xl font-medium mb-5">Tables And Charts</h1>
+            {documentTablesAndCharts().map((item, index) => (
+              <div
+                key={index}
+                className="w-full border rounded-lg p-4 my-4 bg-white shadow-sm"
+              >
+                {item.markdown && (
+                  <MarkdownRenderer
+                    key={selectedDocument}
+                    content={item.markdown}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
   };
 
-  const handleSaveMarkdown = (content: string) => {
-    updateText(content);
-  };
-  const handleClose = () => {
-    setIsOpen(false);
+  const renderSidebar = () => {
+    if (!isOpen) return null;
+
+    return (
+      <div className={`${styles.sidebar} fixed xl:relative w-full z-50 xl:z-auto
+        transition-all duration-300 ease-in-out max-w-[200px] md:max-w-[300px] h-[85vh] rounded-md p-5`}>
+        <X
+          onClick={() => setIsOpen(false)}
+          className="text-black mb-4 ml-auto mr-0 cursor-pointer hover:text-gray-600"
+          size={20}
+        />
+
+        {reportKeys.length > 0 && (
+          <div
+            onClick={() => updateSelectedDocument(reportKeys[0])}
+            className={`${selectedDocument === reportKeys[0]
+              ? styles.selected_border
+              : styles.unselected_border
+              } ${styles.report_icon_box} flex justify-center items-center rounded-lg w-full h-32 cursor-pointer`}
+          >
+            <div>
+              <img
+                className="mx-auto h-20"
+                src="/report.png"
+                alt="Research Report"
+              />
+              <p className="text-sm mt-2 text-[#2E2E2E]">Research Report</p>
+            </div>
+          </div>
+        )}
+
+        {documentKeys.length > 0 && (
+          <div className="mt-8">
+            <p className="text-xs mt-2 text-[#2E2E2E] opacity-70">DOCUMENTS</p>
+            <div className="flex flex-col gap-2 mt-6">
+              {documentKeys.map((key) => (
+                <div
+                  key={key}
+                  onClick={() => updateSelectedDocument(key)}
+                  className={`${selectedDocument === key ? styles.selected_border : ""
+                    } flex p-2 rounded-sm gap-2 items-center cursor-pointer`}
+                >
+                  <img
+                    className="h-6 w-6 border border-gray-200"
+                    src={getIconFromFile(key)}
+                    alt="Document icon"
+                  />
+                  <span className="text-sm h-6 text-[#2E2E2E] overflow-hidden">
+                    {removeUUID(key.split("/").pop() ?? "file.txt")}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {imageKeys.length > 0 && (
+          <div className="mt-8">
+            <p className="text-xs mt-2 text-[#2E2E2E] opacity-70">IMAGES</p>
+            <div className="flex flex-col gap-2 mt-6">
+              {imageKeys.map((key) => (
+                <div
+                  key={key}
+                  onClick={() => updateSelectedDocument(key)}
+                  className="cursor-pointer"
+                >
+                  <img
+                    className={`${selectedDocument === key
+                      ? styles.selected_border
+                      : styles.unselected_border
+                      } ${styles.uploaded_images} rounded-lg h-24 w-full border border-gray-200`}
+                    src={images[key]}
+                    alt="Uploaded image"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
-    <>
-      <div className={`${styles.wrapper} min-h-screen flex flex-col w-full`}>
-        <OverlayLoader
-          show={showLoading.show}
-          text={showLoading.message}
-          showProgress={showLoading.progress}
-          duration={showLoading.duration}
-        />
+    <div className={`${styles.wrapper} min-h-screen flex flex-col w-full`}>
+      <OverlayLoader
+        show={showLoading.show}
+        text={showLoading.message}
+        showProgress={showLoading.progress}
+        duration={showLoading.duration}
+      />
 
-        <Header />
-        <div className="flex  mt-6 gap-4 ">
-          {/* Sidebar */}
-          {!isOpen && (
-            <div className=" fixed left-4 top-1/2 -translate-y-1/2 z-50">
-              <ToolTip content="Open Panel">
-                <Button
-                  onClick={() => setIsOpen(true)}
-                  className="bg-[#5146E5] text-white p-3 shadow-lg"
-                >
-                  <PanelRightOpen className="text-white" size={20} />
-                </Button>
-              </ToolTip>
-            </div>
-          )}
-          {isOpen && (
-            <div
-              className={`${styles.sidebar}  fixed xl:relative w-full z-50 xl:z-auto
-          transition-all duration-300 ease-in-out max-w-[200px] md:max-w-[300px] h-[85vh] rounded-md p-5`}
-            >
-              <X
-                onClick={handleClose}
-                className="text-black mb-4 ml-auto mr-0 cursor-pointer hover:text-gray-600"
-                size={20}
-              />
-
-              {/* Research Report */}
-              {reportKeys.length > 0 && (
-                <div
-                  onClick={() => updateSelectedDocument(reportKeys[0])}
-                  className={`${
-                    selectedDocument == reportKeys[0]
-                      ? styles.selected_border
-                      : styles.unselected_border
-                  } ${
-                    styles.report_icon_box
-                  } flex justify-center items-center rounded-lg w-full h-32 cursor-pointer`}
-                >
-                  <div>
-                    <img
-                      className="mx-auto h-20"
-                      src="/report.png"
-                      alt="Document preview"
-                    />
-                    <p className="text-sm mt-2 text-[#2E2E2E]">
-                      Research Report
-                    </p>
-                  </div>
-                </div>
-              )}
-              {documentKeys.length > 0 && (
-                <div className="mt-8">
-                  <p className="text-xs mt-2 text-[#2E2E2E] opacity-70">
-                    DOCUMENTS
-                  </p>
-                  <div className="flex flex-col gap-2 mt-6">
-                    {documentKeys.map((key) => {
-                      return (
-                        <div
-                          key={key}
-                          onClick={() => updateSelectedDocument(key)}
-                          className={
-                            (selectedDocument == key
-                              ? styles.selected_border
-                              : "") +
-                            " flex p-2 rounded-sm gap-2 items-center cursor-pointer"
-                          }
-                        >
-                          <img
-                            className="h-6 w-6 border border-gray-200"
-                            src={getIconFromFile(key)}
-                            alt="uploaded image"
-                          />
-                          <span className="text-sm h-6 text-[#2E2E2E] overflow-hidden">
-                            {removeUUID(key.split("/").pop() ?? "file.txt")}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-              {imageKeys.length > 0 && (
-                <div className="mt-8">
-                  <p className="text-xs mt-2 text-[#2E2E2E] opacity-70">
-                    IMAGES
-                  </p>
-                  <div className="flex flex-col gap-2 mt-6">
-                    {imageKeys.map((key) => {
-                      return (
-                        <div
-                          key={key}
-                          onClick={() => updateSelectedDocument(key)}
-                          className="cursor-pointer"
-                        >
-                          <img
-                            className={` ${
-                              selectedDocument == key
-                                ? styles.selected_border
-                                : styles.unselected_border
-                            } ${
-                              styles.uploaded_images
-                            } rounded-lg h-24 w-full border border-gray-200`}
-                            src={images[key]}
-                            alt="uploaded image"
-                          />
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-          {/* Content */}
-          <div className="bg-white  w-full mx-2 sm:mx-4 h-[calc(100vh-100px)] rounded-md  overflow-y-auto py-6 pl-6">
-            {selectedDocument != null && (
-              <div className="h-full mr-4">
-                {documentKeys.includes(selectedDocument) && (
-                  <div
-                    className={` overflow-y-auto  hide-scrollbar ${
-                      documentTablesAndCharts().length > 0
-                        ? "h-[calc(100vh-300px)]"
-                        : "h-full"
-                    }`}
-                  >
-                    <div
-                      className={`h-full w-full max-w-full flex flex-col  mb-5`}
-                    >
-                      <h1 className="text-2xl font-medium mb-5">Content:</h1>
-
-                      {downloadingDocuments.includes(selectedDocument) ? (
-                        <Skeleton className="w-full h-full"></Skeleton>
-                      ) : (
-                        <MarkdownRenderer
-                          content={textContents[selectedDocument] || ""}
-                        />
-                      )}
-                    </div>
-                  </div>
-                )}
-                {reportKeys.includes(selectedDocument) && (
-                  <div
-                    className={` overflow-y-auto  hide-scrollbar ${
-                      documentTablesAndCharts().length > 0
-                        ? "h-[calc(100vh-300px)]"
-                        : "h-full"
-                    }`}
-                  >
-                    <div
-                      className={`h-full w-full max-w-full flex flex-col  mb-5`}
-                    >
-                      <h1 className="text-2xl font-medium mb-5">Content:</h1>
-
-                      {downloadingDocuments.includes(selectedDocument) ? (
-                        <Skeleton className="w-full h-full"></Skeleton>
-                      ) : (
-                        <MarkdownRenderer
-                          content={textContents[selectedDocument] || ""}
-                        />
-                      )}
-                    </div>
-                  </div>
-                )}
-                {documentTablesAndCharts().length > 0 && (
-                  <div className="py-4">
-                    <h1 className="text-2xl font-medium mb-5">
-                      Tables And Charts
-                    </h1>
-                    {documentTablesAndCharts().map((each: any, index) => {
-                      return (
-                        <div
-                          key={index}
-                          className="w-full border rounded-lg p-4 my-4 bg-white shadow-sm"
-                        >
-                          {/* @ts-ignore */}
-                          {each.markdown && (
-                            <MarkdownRenderer
-                              key={selectedDocument}
-                              content={each.markdown || ""}
-                            />
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
+      <Header />
+      <div className="flex mt-6 gap-4">
+        {!isOpen && (
+          <div className="fixed left-4 top-1/2 -translate-y-1/2 z-50">
+            <ToolTip content="Open Panel">
+              <Button
+                onClick={() => setIsOpen(true)}
+                className="bg-[#5146E5] text-white p-3 shadow-lg"
+              >
+                <PanelRightOpen className="text-white" size={20} />
+              </Button>
+            </ToolTip>
           </div>
-          <div className="fixed bottom-5 right-5">
-            <Button
-              onClick={handleCreatePresentation}
-              className="flex items-center gap-2 px-8 py-6  rounded-sm text-md bg-[#5146E5] hover:bg-[#5146E5]/90"
-            >
-              <span className="text-white font-semibold">Next</span>
-              <ChevronRight />
-            </Button>
-          </div>
+        )}
+
+        {renderSidebar()}
+
+        <div className="bg-white w-full mx-2 sm:mx-4 h-[calc(100vh-100px)] rounded-md overflow-y-auto py-6 pl-6">
+          {renderDocumentContent()}
+        </div>
+
+        <div className="fixed bottom-5 right-5">
+          <Button
+            onClick={handleCreatePresentation}
+            className="flex items-center gap-2 px-8 py-6 rounded-sm text-md bg-[#5146E5] hover:bg-[#5146E5]/90"
+          >
+            <span className="text-white font-semibold">Next</span>
+            <ChevronRight />
+          </Button>
         </div>
       </div>
-    </>
+    </div>
   );
 };
 
