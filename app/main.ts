@@ -7,8 +7,10 @@ import { ChildProcessByStdio } from "child_process";
 import { localhost } from "./constants";
 
 var isDev = process.env.DEBUG === "True";
-var resourcesDir =
-  (isDev ? process.cwd() : process.resourcesPath) + "/resources";
+var baseDir = isDev ? process.cwd() : process.resourcesPath;
+var resourcesDir = path.join(baseDir, "resources");
+var fastapiDir = isDev ? path.join(baseDir, "servers/fastapi") : path.join(resourcesDir, "fastapi");
+var nextjsDir = isDev ? path.join(baseDir, "servers/nextjs") : path.join(resourcesDir, "nextjs");
 
 var win: BrowserWindow | undefined;
 var fastApiProcess: ChildProcessByStdio<any, any, any> | undefined;
@@ -24,7 +26,7 @@ const createWindow = () => {
 async function startServers(fastApiPort: number, nextjsPort: number) {
   try {
     fastApiProcess = await startFastApiServer(
-      path.join(resourcesDir, "fastapi"),
+      fastapiDir,
       fastApiPort,
       {
         DEBUG: isDev ? "True" : "False",
@@ -36,7 +38,7 @@ async function startServers(fastApiPort: number, nextjsPort: number) {
       }
     );
     nextjsProcess = await startNextJsServer(
-      path.join(resourcesDir, "nextjs"),
+      nextjsDir,
       nextjsPort,
       {
         NEXT_PUBLIC_API: `${localhost}:${fastApiPort}`,

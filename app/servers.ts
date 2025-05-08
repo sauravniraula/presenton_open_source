@@ -16,7 +16,7 @@ export async function startFastApiServer(
     {
       cwd: directory,
       stdio: ["inherit", "pipe", "pipe"],
-      env: { ...env },
+      env: { ...process.env, ...env },
     }
   );
   fastApiProcess.stdout.on("data", (data: any) => {

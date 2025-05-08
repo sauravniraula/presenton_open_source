@@ -8,7 +8,9 @@
     "start": "tsc && electron-forge start",
     "package": "tsc && electron-forge package",
     "make": "tsc && electron-forge make",
-    "build:css": "tailwindcss -i ./resources/ui/assets/tailwind.import.css -o ./resources/ui/assets/tailwind.css"
+    "build:css": "tailwindcss -i ./resources/ui/assets/tailwind.import.css -o ./resources/ui/assets/tailwind.css",
+    "build:nextjs": "rm -rf resources/nextjs && mkdir -p resources/nextjs && cd servers/nextjs && npm run build && cp -r .next ../../resources/nextjs",
+    "build:fastapi": "rm -rf resources/fastapi && mkdir -p resources/fastapi"
   },
   "devDependencies": {
     "@electron-forge/cli": "^7.8.0",
