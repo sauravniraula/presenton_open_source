@@ -4,11 +4,9 @@ import { IconSearch, ImageGenerate, ImageSearch } from "./params";
 export class PresentationGenerationApi {
   // static BASE_URL="https://api.presenton.ai";
   // static BASE_URL="https://presentation-generator-fragrant-mountain-1643.fly.dev";
-  static BASE_URL =
-    "https://presentation-generator-wandering-night-8649.fly.dev";
+  static BASE_URL = process.env.NEXT_PUBLIC_API;
   // static BASE_URL = "http://localhost:48388";
 
-  static BUCKET_URL = "https://s3.ap-south-1.amazonaws.com/pptgen-public-v2/";
   static async getChapterDetails() {
     try {
       const response = await fetch(
@@ -400,14 +398,10 @@ export class PresentationGenerationApi {
       throw error;
     }
   }
-  static async deleteSlide(
-    user_id: string,
-    presentation_id: string,
-    slide_id: string
-  ) {
+  static async deleteSlide(presentation_id: string, slide_id: string) {
     try {
       const response = await fetch(
-        `${PresentationGenerationApi.BASE_URL}/ppt/slide/delete?user_id=${user_id}&presentation_id=${presentation_id}&slide_id=${slide_id}`,
+        `${PresentationGenerationApi.BASE_URL}/ppt/slide/delete?presentation_id=${presentation_id}&slide_id=${slide_id}`,
         {
           method: "DELETE",
           headers: getHeader(),

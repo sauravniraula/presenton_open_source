@@ -79,7 +79,7 @@ const PresentationPage = ({ presentation_id }: { presentation_id: string }) => {
 
   // Create auto-save function
   const autoSave = useCallback(
-    (data: { user_id: string; presentation_id: string; slides: any[] }) => {
+    (data: { presentation_id: string; slides: any[] }) => {
       setAutoSaveLoading(true);
       // Fire and forget - no await
       PresentationGenerationApi.updatePresentationContent(data)
@@ -108,7 +108,6 @@ const PresentationPage = ({ presentation_id }: { presentation_id: string }) => {
       )
     ) {
       debouncedSave({
-        user_id: "user?.id!",
         presentation_id: presentation_id,
         slides: presentationData.slides,
       });
@@ -120,6 +119,7 @@ const PresentationPage = ({ presentation_id }: { presentation_id: string }) => {
 
   // Function to fetch the slides
   useEffect(() => {
+    console.log("called");
     let evtSource: EventSource;
     let accumulatedChunks = "";
 
@@ -127,7 +127,7 @@ const PresentationPage = ({ presentation_id }: { presentation_id: string }) => {
       dispatch(setStreaming(true));
 
       evtSource = new EventSource(
-        `${PresentationGenerationApi.BASE_URL}/ppt/generate/stream?user_id=${DashboardApi.USER_ID}&presentation_id=${presentation_id}&session=${session}`
+        `${PresentationGenerationApi.BASE_URL}/ppt/generate/stream?presentation_id=${presentation_id}&session=${session}`
       );
 
       evtSource.onopen = () => {
@@ -166,6 +166,7 @@ const PresentationPage = ({ presentation_id }: { presentation_id: string }) => {
           }
         } else if (data.type === "complete") {
           try {
+            console.log("evtsource completer");
             dispatch(setPresentationData(data.presentation));
             dispatch(
               setThemeColors({
@@ -315,7 +316,6 @@ const PresentationPage = ({ presentation_id }: { presentation_id: string }) => {
   const handleDeleteSlide = async (index: number) => {
     dispatch(deletePresentationSlide(index));
     const response = PresentationGenerationApi.deleteSlide(
-      "user?.id"!,
       presentation_id,
       presentationData?.slides[index].id!
     );

@@ -160,7 +160,6 @@ const Header = ({
   };
   const metaData = async () => {
     const body = {
-      user_id: "user?.id!",
       presentation_id: presentation_id,
       slides: presentationData?.slides,
     };
@@ -181,7 +180,6 @@ const Header = ({
     });
 
     const apiBody = {
-      user_id: "user?.id",
       presentation_id: presentation_id,
       pptx_model: {
         background_color: metadata[0].backgroundColor,

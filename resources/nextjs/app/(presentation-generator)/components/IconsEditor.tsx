@@ -112,11 +112,7 @@ const IconsEditor = ({
       >
         {icon ? (
           <img
-            src={
-              icon.startsWith("user")
-                ? `${PresentationGenerationApi.BUCKET_URL}${icon}`
-                : icon
-            }
+            src={icon.startsWith("user") ? `file://${icon}` : icon}
             alt="slide icon"
             className={`object-contain w-[16px] h-[16px] md:w-[32px] md:h-[32px] ${
               hasBg ? "brightness-0 invert" : ""

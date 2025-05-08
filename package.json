@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "description": "Presenton Open Source",
   "scripts": {
-    "dev": "tsc && electron .",
+    "dev": "tsc && electron --gtk-version=3 .",
     "start": "tsc && electron-forge start",
     "package": "tsc && electron-forge package",
     "make": "tsc && electron-forge make",

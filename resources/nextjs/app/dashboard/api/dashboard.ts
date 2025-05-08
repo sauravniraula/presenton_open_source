@@ -21,14 +21,12 @@ export interface PresentationResponse {
 }
 
 export class DashboardApi {
-  static USER_ID = "701de4bf-3323-4826-8f27-3a99b40b0f48";
   // static BASE_URL = "http://localhost:48388";
-  static BASE_URL =
-    "https://presentation-generator-wandering-night-8649.fly.dev";
+  static BASE_URL = process.env.NEXT_PUBLIC_API;
   static async getPresentations(): Promise<PresentationResponse[]> {
     try {
       const response = await fetch(
-        `${DashboardApi.BASE_URL}/ppt/user_presentations?user_id=${this.USER_ID}`,
+        `${DashboardApi.BASE_URL}/ppt/user_presentations`,
         {
           method: "GET",
           headers: getHeader(),
@@ -50,7 +48,7 @@ export class DashboardApi {
   static async getPresentation(id: string) {
     try {
       const response = await fetch(
-        `${DashboardApi.BASE_URL}/ppt/presentation?presentation_id=${id}&user_id=${this.USER_ID}`,
+        `${DashboardApi.BASE_URL}/ppt/presentation?presentation_id=${id}`,
         {
           method: "GET",
         }
