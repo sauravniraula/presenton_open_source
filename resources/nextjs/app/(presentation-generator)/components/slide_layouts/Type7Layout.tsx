@@ -106,10 +106,11 @@ const Type7Layout = ({
       );
     }
 
+    const girdLayout = `lg:grid-cols-${body.length}`;
     // Horizontal layout for 2-3 items
     return (
       <div
-        className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-${body.length} w-full gap-3 lg:gap-8 mt-4 lg:mt-12 relative group`}
+        className={`grid grid-cols-1 sm:grid-cols-2 ${girdLayout} w-full gap-3 lg:gap-8 mt-4 lg:mt-12 relative group`}
       >
         <div className="absolute -inset-[2px] border-2 hidden lg:block border-transparent group-hover:border-blue-500 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
 

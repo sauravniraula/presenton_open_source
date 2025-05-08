@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 
 import { Camera, Loader2, Plus } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
@@ -37,14 +37,14 @@ const SlideFooter: React.FC = () => {
   const whiteLogoRef = useRef<HTMLInputElement | null>(null);
   const darkLogoRef = useRef<HTMLInputElement | null>(null);
 
-  // Use the new FooterContext instead of the useFooter hook
   const { footerProperties, updateFooterProperties, resetFooterProperties } =
     useFooterContext();
 
-  // Handler for updating nested state properties
+  const [draftProperties, setDraftProperties] = useState(footerProperties);
+
   const setFooterProperties = (updaterFn: (prevProps: any) => any): void => {
-    const newProps = updaterFn(footerProperties);
-    updateFooterProperties(newProps);
+    const newProps = updaterFn(draftProperties);
+    setDraftProperties(newProps);
   };
 
   const updateProperty = (path: string, value: any): void => {
@@ -53,13 +53,11 @@ const SlideFooter: React.FC = () => {
       const newProps = { ...prevProps };
       let current: any = newProps;
 
-      // Navigate to the correct nested object except for the last key
       for (let i = 0; i < keys.length - 1; i++) {
         current[keys[i]] = { ...current[keys[i]] };
         current = current[keys[i]];
       }
 
-      // Set the value for the last key
       current[keys[keys.length - 1]] = value;
 
       return newProps;
@@ -67,8 +65,7 @@ const SlideFooter: React.FC = () => {
   };
 
   const handleSave = () => {
-    // The updateFooterProperties function now handles saving to the API
-    updateFooterProperties(footerProperties);
+    updateFooterProperties(draftProperties);
     toast({
       title: "Footer properties saved successfully",
     });
@@ -76,42 +73,44 @@ const SlideFooter: React.FC = () => {
 
   const handleReset = () => {
     resetFooterProperties();
+    setDraftProperties(footerProperties);
     toast({
       title: "Footer properties reset to default",
     });
   };
 
-  // Helper for checkbox inputs
+  useEffect(() => {
+    if (showEditor) {
+      setDraftProperties(footerProperties);
+    }
+  }, [showEditor, footerProperties]);
+
   const handleSwitchChange =
     (path: string) =>
     (checked: boolean): void => {
       updateProperty(path, checked);
     };
 
-  // Helper for text inputs
   const handleTextChange =
     (path: string) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
       updateProperty(path, e.target.value);
     };
 
-  // Helper for select inputs
   const handleSelectChange =
     (path: string) =>
     (value: string): void => {
       updateProperty(path, value);
     };
 
-  // Helper for slider inputs
   const handleSliderChange =
     (path: string) =>
     (value: number[]): void => {
       updateProperty(path, value[0]);
     };
 
-  // Get logo based on position
   const getLogoPositionClass = (): string => {
-    const { logoPosition } = footerProperties.logoProperties;
+    const { logoPosition } = draftProperties.logoProperties;
     return logoPosition === "left"
       ? "justify-start"
       : logoPosition === "center"
@@ -119,31 +118,28 @@ const SlideFooter: React.FC = () => {
       : "justify-end";
   };
 
-  // Calculate logo styles
   const getLogoStyle = (): React.CSSProperties => {
-    const { opacity } = footerProperties.logoProperties;
-    const { logoScale, logoOffset } = footerProperties;
+    const { opacity } = draftProperties.logoProperties;
+    const { logoScale, logoOffset } = draftProperties;
     return {
       opacity: opacity,
       transform: `scale(${logoScale}) translate(${logoOffset.x}px, ${logoOffset.y}px)`,
     };
   };
 
-  // Calculate message styles
   const getMessageStyle = (): React.CSSProperties => {
-    const { fontSize, opacity } = footerProperties.footerMessage;
+    const { fontSize, opacity } = draftProperties.footerMessage;
     return {
       opacity: opacity,
       fontSize: `${fontSize}px`,
     };
   };
 
-  // Get the appropriate logo image URL
   const getLogoImageSrc = (): string => {
     if (isDark) {
-      return footerProperties.logoProperties.logoImage.dark;
+      return draftProperties.logoProperties.logoImage.dark;
     } else {
-      return footerProperties.logoProperties.logoImage.light;
+      return draftProperties.logoProperties.logoImage.light;
     }
   };
 
@@ -170,8 +166,7 @@ const SlideFooter: React.FC = () => {
       return;
     }
 
-    // Just use the file path directly
-    const filePath = file.path; // Electron provides the full path in the file object
+    const filePath = file.path;
 
     setFooterProperties((prev: any) => ({
       ...prev,
@@ -199,7 +194,6 @@ const SlideFooter: React.FC = () => {
     }
 
     const filePath = file.path;
-    
 
     setFooterProperties((prev: any) => ({
       ...prev,
@@ -234,16 +228,15 @@ const SlideFooter: React.FC = () => {
         id="footer"
         className="absolute hidden lg:grid z-10 cursor-pointer px-6  grid-cols-3 items-end left-1/2 -translate-x-1/2 justify-between bottom-5 w-full"
       >
-        {/* Left logo */}
         <div
           className={`h-8 flex-1 flex ${
-            footerProperties.logoProperties.logoPosition === "left"
+            draftProperties.logoProperties.logoPosition === "left"
               ? getLogoPositionClass()
               : "justify-start"
           }`}
         >
-          {footerProperties.logoProperties.showLogo &&
-            (footerProperties.logoProperties.logoPosition === "left" ? (
+          {draftProperties.logoProperties.showLogo &&
+            (draftProperties.logoProperties.logoPosition === "left" ? (
               getLogoImageSrc() !== "" ? (
                 <img
                   data-slide-element
@@ -267,7 +260,6 @@ const SlideFooter: React.FC = () => {
             ))}
         </div>
 
-        {/*  Message */}
         <div
           className={`flex-1 flex items-center font-satoshi slide-title justify-center`}
         >
@@ -276,26 +268,25 @@ const SlideFooter: React.FC = () => {
             className="text-sm"
             data-slide-element
             data-element-type="text"
-            data-text-content={footerProperties.footerMessage.message}
+            data-text-content={draftProperties.footerMessage.message}
             style={getMessageStyle()}
           >
-            {footerProperties.footerMessage.showMessage &&
-              (footerProperties.footerMessage.message
-                ? footerProperties.footerMessage.message
+            {draftProperties.footerMessage.showMessage &&
+              (draftProperties.footerMessage.message
+                ? draftProperties.footerMessage.message
                 : "Your text")}
           </p>
         </div>
 
-        {/* watermark*/}
         <div
           className={`h-8 flex-1 flex ${
-            footerProperties.logoProperties.logoPosition === "right"
+            draftProperties.logoProperties.logoPosition === "right"
               ? getLogoPositionClass()
               : "justify-start"
           }`}
         >
-          {footerProperties.logoProperties.showLogo &&
-          footerProperties.logoProperties.logoPosition === "right" ? (
+          {draftProperties.logoProperties.showLogo &&
+          draftProperties.logoProperties.logoPosition === "right" ? (
             getLogoImageSrc() !== "" ? (
               <div data-element-type="picture" data-slide-element>
                 <img
@@ -334,7 +325,6 @@ const SlideFooter: React.FC = () => {
             </p>
           </SheetHeader>
 
-          {/* Logo Configuration */}
           <div className="space-y-6 h-[calc(100vh-200px)] overflow-y-auto custom_scrollbar p-4">
             <div className=" pb-8">
               <h3 className="text-lg font-medium mb-4">Logo Settings</h3>
@@ -346,7 +336,7 @@ const SlideFooter: React.FC = () => {
                   </Label>
                   <Switch
                     id="showLogo"
-                    checked={footerProperties.logoProperties.showLogo}
+                    checked={draftProperties.logoProperties.showLogo}
                     onCheckedChange={handleSwitchChange(
                       "logoProperties.showLogo"
                     )}
@@ -364,7 +354,6 @@ const SlideFooter: React.FC = () => {
                         accept="image/*"
                         id="whiteLogo"
                         name="whiteLogo"
-                        
                         onChange={handleWhiteLogoUpload}
                         className="opacity-0 z-[-10] absolute group-hover:border-blue-500 h-full w-full cursor-pointer"
                       />
@@ -372,13 +361,11 @@ const SlideFooter: React.FC = () => {
                         <div className="absolute h-20 w-20 mx-auto max-w-full max-h-full object-contain flex justify-center items-center">
                           <Loader2 className="animate-spin" />
                         </div>
-                      ) : footerProperties.logoProperties.logoImage.light ? (
+                      ) : draftProperties.logoProperties.logoImage.light ? (
                         <div className="absolute">
                           <img
                             className=" h-20 w-20 mx-auto  object-contain "
-                            src={
-                              footerProperties.logoProperties.logoImage.light
-                            }
+                            src={draftProperties.logoProperties.logoImage.light}
                             alt="brand white logo"
                           />
                           <div className="w-10 h-10 p-2 rounded-full bg-blue-400 absolute opacity-0 group-hover:opacity-100 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex justify-center items-center duration-300">
@@ -402,14 +389,13 @@ const SlideFooter: React.FC = () => {
                         accept="image/*"
                         id="darkLogo"
                         name="darkLogo"
-                        
                         type="file"
                         className="opacity-0 h-full w-full cursor-pointer"
                       />
-                      {footerProperties.logoProperties.logoImage.dark && (
+                      {draftProperties.logoProperties.logoImage.dark && (
                         <img
                           className="absolute h-20 w-20 mx-auto max-w-full max-h-full object-contain "
-                          src={footerProperties.logoProperties.logoImage.dark}
+                          src={draftProperties.logoProperties.logoImage.dark}
                           alt="brand white logo"
                         />
                       )}
@@ -417,11 +403,11 @@ const SlideFooter: React.FC = () => {
                         <div className="absolute h-20 w-20 mx-auto max-w-full max-h-full object-contain flex justify-center items-center">
                           <Loader2 className="animate-spin text-white" />
                         </div>
-                      ) : footerProperties.logoProperties.logoImage.dark ? (
+                      ) : draftProperties.logoProperties.logoImage.dark ? (
                         <div className="absolute">
                           <img
                             className=" h-20 w-20 mx-auto  object-contain "
-                            src={footerProperties.logoProperties.logoImage.dark}
+                            src={draftProperties.logoProperties.logoImage.dark}
                             alt="brand white logo"
                           />
                           <div className="w-10 h-10 p-2 rounded-full bg-blue-400 absolute opacity-0 group-hover:opacity-100 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex justify-center items-center duration-300">
@@ -436,11 +422,11 @@ const SlideFooter: React.FC = () => {
                   </div>
                 </div>
 
-                {footerProperties.logoProperties.showLogo && (
+                {draftProperties.logoProperties.showLogo && (
                   <div className="space-y-2">
                     <Label htmlFor="logoPosition">Logo Position</Label>
                     <Select
-                      value={footerProperties.logoProperties.logoPosition}
+                      value={draftProperties.logoProperties.logoPosition}
                       onValueChange={handleSelectChange(
                         "logoProperties.logoPosition"
                       )}
@@ -460,7 +446,7 @@ const SlideFooter: React.FC = () => {
                   <div className="flex justify-between">
                     <Label htmlFor="opacity">Logo Opacity</Label>
                     <span className="text-sm text-gray-700 font-semibold">
-                      {footerProperties.logoProperties.opacity}
+                      {draftProperties.logoProperties.opacity}
                     </span>
                   </div>
                   <Slider
@@ -468,8 +454,8 @@ const SlideFooter: React.FC = () => {
                     min={0}
                     max={1}
                     step={0.1}
-                    defaultValue={[footerProperties.logoProperties.opacity]}
-                    value={[footerProperties.logoProperties.opacity]}
+                    defaultValue={[draftProperties.logoProperties.opacity]}
+                    value={[draftProperties.logoProperties.opacity]}
                     onValueChange={handleSliderChange("logoProperties.opacity")}
                   />
                 </div>
@@ -478,7 +464,7 @@ const SlideFooter: React.FC = () => {
                   <div className="flex justify-between">
                     <Label htmlFor="scale">Logo Scale</Label>
                     <span className="text-sm text-gray-700 font-semibold">
-                      {footerProperties.logoScale}
+                      {draftProperties.logoScale}
                     </span>
                   </div>
                   <Slider
@@ -486,8 +472,8 @@ const SlideFooter: React.FC = () => {
                     min={0.5}
                     max={1.1}
                     step={0.1}
-                    defaultValue={[footerProperties.logoScale]}
-                    value={[footerProperties.logoScale]}
+                    defaultValue={[draftProperties.logoScale]}
+                    value={[draftProperties.logoScale]}
                     onValueChange={handleSliderChange("logoScale")}
                   />
                 </div>
@@ -496,7 +482,7 @@ const SlideFooter: React.FC = () => {
                   <div className="flex justify-between">
                     <Label htmlFor="offsetX">Logo Horizontal Offset</Label>
                     <span className="text-sm text-gray-700 font-semibold">
-                      {footerProperties.logoOffset.x}px
+                      {draftProperties.logoOffset.x}px
                     </span>
                   </div>
                   <Slider
@@ -504,8 +490,8 @@ const SlideFooter: React.FC = () => {
                     min={-10}
                     max={50}
                     step={1}
-                    defaultValue={[footerProperties.logoOffset.x]}
-                    value={[footerProperties.logoOffset.x]}
+                    defaultValue={[draftProperties.logoOffset.x]}
+                    value={[draftProperties.logoOffset.x]}
                     onValueChange={handleSliderChange("logoOffset.x")}
                   />
                 </div>
@@ -514,7 +500,7 @@ const SlideFooter: React.FC = () => {
                   <div className="flex justify-between">
                     <Label htmlFor="offsetY">Logo Vertical Offset</Label>
                     <span className="text-sm text-gray-700 font-semibold ">
-                      {footerProperties.logoOffset.y * -1}px
+                      {draftProperties.logoOffset.y * -1}px
                     </span>
                   </div>
                   <Slider
@@ -522,15 +508,14 @@ const SlideFooter: React.FC = () => {
                     min={-10}
                     max={10}
                     step={1}
-                    defaultValue={[footerProperties.logoOffset.y]}
-                    value={[footerProperties.logoOffset.y]}
+                    defaultValue={[draftProperties.logoOffset.y]}
+                    value={[draftProperties.logoOffset.y]}
                     onValueChange={handleSliderChange("logoOffset.y")}
                   />
                 </div>
               </div>
             </div>
 
-            {/* Footer Message Configuration */}
             <div className="pb-4">
               <h3 className="text-lg font-medium mb-4">Footer Message</h3>
 
@@ -541,7 +526,7 @@ const SlideFooter: React.FC = () => {
                   </Label>
                   <Switch
                     id="showMessage"
-                    checked={footerProperties.footerMessage.showMessage}
+                    checked={draftProperties.footerMessage.showMessage}
                     onCheckedChange={handleSwitchChange(
                       "footerMessage.showMessage"
                     )}
@@ -551,7 +536,7 @@ const SlideFooter: React.FC = () => {
                   <Label htmlFor="message">Message Text</Label>
                   <Textarea
                     id="message"
-                    value={footerProperties.footerMessage.message}
+                    value={draftProperties.footerMessage.message}
                     onChange={handleTextChange("footerMessage.message")}
                     className="h-20 border border-blue-500"
                   />
@@ -561,7 +546,7 @@ const SlideFooter: React.FC = () => {
                   <div className="flex justify-between">
                     <Label htmlFor="fontSize">Font Size</Label>
                     <span className="text-sm text-gray-700 font-semibold">
-                      {footerProperties.footerMessage.fontSize}px
+                      {draftProperties.footerMessage.fontSize}px
                     </span>
                   </div>
                   <Slider
@@ -569,8 +554,8 @@ const SlideFooter: React.FC = () => {
                     min={8}
                     max={14}
                     step={0.1}
-                    defaultValue={[footerProperties.footerMessage.fontSize]}
-                    value={[footerProperties.footerMessage.fontSize]}
+                    defaultValue={[draftProperties.footerMessage.fontSize]}
+                    value={[draftProperties.footerMessage.fontSize]}
                     onValueChange={handleSliderChange("footerMessage.fontSize")}
                   />
                 </div>
@@ -578,7 +563,7 @@ const SlideFooter: React.FC = () => {
                   <div className="flex justify-between">
                     <Label htmlFor="font-opacity">Opacity</Label>
                     <span className="text-sm text-gray-700 font-semibold">
-                      {footerProperties.footerMessage.opacity}
+                      {draftProperties.footerMessage.opacity}
                     </span>
                   </div>
                   <Slider
@@ -586,8 +571,8 @@ const SlideFooter: React.FC = () => {
                     min={0.5}
                     max={1}
                     step={0.1}
-                    defaultValue={[footerProperties.footerMessage.opacity]}
-                    value={[footerProperties.footerMessage.opacity]}
+                    defaultValue={[draftProperties.footerMessage.opacity]}
+                    value={[draftProperties.footerMessage.opacity]}
                     onValueChange={handleSliderChange("footerMessage.opacity")}
                   />
                 </div>
@@ -595,7 +580,6 @@ const SlideFooter: React.FC = () => {
             </div>
           </div>
 
-          {/* Reset Button */}
           <div className="flex gap-4 mt-4 justify-end">
             <Button
               variant="outline"

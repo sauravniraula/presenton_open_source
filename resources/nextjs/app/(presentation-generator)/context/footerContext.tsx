@@ -11,7 +11,7 @@ import {
 const defaultFooterProperties: FooterProperties = {
   logoProperties: {
     showLogo: true,
-    logoPosition: "right",
+    logoPosition: "left",
     opacity: 0.8,
     logoImage: {
       light: "",
@@ -73,13 +73,6 @@ export const FooterProvider: React.FC<{ children: React.ReactNode }> = ({
     };
 
     loadFooterProperties();
-  }, []);
-
-  // Clean up any file resources when unmounting
-  useEffect(() => {
-    return () => {
-      // Optional: Clean up temporary files
-    };
   }, []);
 
   // Update footer properties
