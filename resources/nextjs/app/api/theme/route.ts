@@ -1,29 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import sqlite3 from "sqlite3";
-import { open } from "sqlite";
-import path from "path";
-import fs from "fs";
-
-const DB_PATH = path.join(process.cwd(), "data", "theme-settings.db");
-
-// Ensure data directory exists
-fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
-
-const getDb = async () => {
-  const db = await open({
-    filename: DB_PATH,
-    driver: sqlite3.verbose().Database,
-  });
-
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS themes (
-      userId TEXT PRIMARY KEY,
-      themeData TEXT NOT NULL
-    )
-  `);
-
-  return db;
-};
+import { getDb } from "../../(presentation-generator)/services/db";
 
 export async function GET(request: NextRequest) {
   try {
@@ -39,13 +15,13 @@ export async function GET(request: NextRequest) {
 
     const db = await getDb();
     const result = await db.get(
-      "SELECT themeData FROM themes WHERE userId = ?",
+      "SELECT data FROM settings WHERE key = 'theme' AND userId = ?",
       userId
     );
     await db.close();
 
     if (result) {
-      return NextResponse.json({ theme: JSON.parse(result.themeData) });
+      return NextResponse.json({ theme: JSON.parse(result.data) });
     }
 
     return NextResponse.json({ theme: null });
@@ -74,7 +50,8 @@ export async function POST(request: NextRequest) {
     const themeDataJson = JSON.stringify(themeData);
 
     await db.run(
-      "INSERT OR REPLACE INTO themes (userId, themeData) VALUES (?, ?)",
+      `INSERT OR REPLACE INTO settings (key, userId, data, updated_at) 
+       VALUES ('theme', ?, ?, CURRENT_TIMESTAMP)`,
       [userId, themeDataJson]
     );
 

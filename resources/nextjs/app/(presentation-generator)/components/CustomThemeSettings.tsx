@@ -129,12 +129,11 @@ const CustomThemeSettings = ({
   // Load saved theme
   React.useEffect(() => {
     const loadSavedCustomTheme = async () => {
-      console.log("called heheheh");
       try {
         dispatch(setLoadingState(true));
         const savedTheme = await themeService.getTheme();
         if (savedTheme) {
-          dispatch(loadSavedTheme(savedTheme));
+          // dispatch(loadSavedTheme(savedTheme));
           setDraftColors(savedTheme.colors);
         }
       } catch (error) {
