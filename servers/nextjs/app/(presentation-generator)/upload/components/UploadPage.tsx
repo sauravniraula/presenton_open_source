@@ -190,6 +190,7 @@ const UploadPage = () => {
     }
 
     const responses = await Promise.all(promises);
+    console.log(responses);
     const processedData = processApiResponses(responses, researchMode);
 
     dispatch(setPptGenUploadState(processedData));
@@ -207,7 +208,6 @@ const UploadPage = () => {
       images: {},
       charts: {},
       tables: {},
-
     };
 
     if (isResearchMode) {
@@ -218,12 +218,13 @@ const UploadPage = () => {
     if (responses.length > 0) {
       const decomposedResponse = responses.shift() as DecomposedResponse;
       Object.assign(result, {
-        documents: decomposedResponse.documents,
-        images: decomposedResponse.images,
-        charts: decomposedResponse.charts,
-        tables: decomposedResponse.tables,
+        documents: decomposedResponse.documents || {},
+        images: decomposedResponse.images || {},
+        charts: decomposedResponse.charts || {},
+        tables: decomposedResponse.tables || {},
       });
     }
+    console.log(result);
 
     return result;
   };
