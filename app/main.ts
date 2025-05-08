@@ -1,7 +1,7 @@
 require("dotenv").config();
 import { app, BrowserWindow } from "electron";
 import path from "path";
-import { findTwoUnusedPorts } from "./utils";
+import { findTwoUnusedPorts, killProcess } from "./utils";
 import { startFastApiServer, startNextJsServer } from "./servers";
 import { ChildProcessByStdio } from "child_process";
 import { localhost } from "./constants";
@@ -35,14 +35,16 @@ async function startServers(fastApiPort: number, nextjsPort: number) {
         OPENAI_API_KEY: process.env.OPENAI_API_KEY || "",
         GOOGLE_API_KEY: process.env.GOOGLE_API_KEY || "",
         APP_DATA_DIRECTORY: process.env.APP_DATA_DIRECTORY || "",
-      }
+      },
+      isDev
     );
     nextjsProcess = await startNextJsServer(
       nextjsDir,
       nextjsPort,
       {
         NEXT_PUBLIC_API: `${localhost}:${fastApiPort}`,
-      }
+      },
+      isDev
     );
   } catch (error) {
     console.error("Server startup error:", error);
@@ -50,8 +52,12 @@ async function startServers(fastApiPort: number, nextjsPort: number) {
 }
 
 async function stopServers() {
-  fastApiProcess?.kill("SIGTERM");
-  nextjsProcess?.kill("SIGTERM");
+  if (fastApiProcess?.pid) {
+    await killProcess(fastApiProcess.pid);
+  }
+  if (nextjsProcess?.pid) {
+    await killProcess(nextjsProcess.pid);
+  }
 }
 
 app.whenReady().then(async () => {

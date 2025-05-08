@@ -1,8 +1,5 @@
 import uvicorn
 import argparse
-from dotenv import load_dotenv
-
-load_dotenv()
 
 from api.main import app
 
@@ -15,6 +12,4 @@ if __name__ == "__main__":
         "--port", type=int, required=True, help="Port number to run the server on"
     )
     args = parser.parse_args()
-    uvicorn.run(
-        "api.main:app", host="0.0.0.0", port=args.port, log_level="info", reload=True
-    )
+    uvicorn.run("api.main:app", host="0.0.0.0", port=args.port, log_level="info")

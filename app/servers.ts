@@ -7,12 +7,21 @@ const execAsync = util.promisify(exec);
 export async function startFastApiServer(
   directory: string,
   port: number,
-  env: FastApiEnv
+  env: FastApiEnv,
+  isDev: boolean,
 ) {
   // Start FastAPI server
-  const fastApiProcess = spawn(
+  const startCommand = isDev ? [
     "env/bin/python",
     ["server.py", "--port", port.toString()],
+  ] : [
+    "./fastapi", ["--port", port.toString()],
+  ];
+
+
+  const fastApiProcess = spawn(
+    startCommand[0] as string,
+    startCommand[1] as string[],
     {
       cwd: directory,
       stdio: ["inherit", "pipe", "pipe"],
@@ -33,12 +42,22 @@ export async function startFastApiServer(
 export async function startNextJsServer(
   directory: string,
   port: number,
-  env: NextJsEnv
+  env: NextJsEnv,
+  isDev: boolean,
 ) {
   // Start NextJS server
-  const nextjsProcess = spawn(
+  const startCommand = isDev ? [
     "npm",
     ["run", "dev", "--", "-p", port.toString()],
+  ] : [
+    "npx",
+    ["next", "start", "--", "-p", port.toString()],
+  ];
+
+
+  const nextjsProcess = spawn(
+    startCommand[0] as string,
+    startCommand[1] as string[],
     {
       cwd: directory,
       stdio: ["inherit", "pipe", "pipe"],

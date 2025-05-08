@@ -178,3 +178,6 @@ env
 __pycache__
 
 *.db
+
+resources/nextjs
+resources/fastapi
