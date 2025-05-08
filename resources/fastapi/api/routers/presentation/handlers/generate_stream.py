@@ -6,7 +6,6 @@ import uuid
 
 from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
-from openai import OpenAI
 from sqlmodel import delete
 
 from api.models import LogMetadata, SSEResponse

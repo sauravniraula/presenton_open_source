@@ -8,7 +8,8 @@ from ppt_generator.models.other_models import SlideType
 
 class LLMHeadingModel(BaseModel):
     heading: str = Field(
-        description="List item heading to show in slide body", max_length="35"
+        description="List item heading to show in slide body",
+        max_length=35,
     )
     description: str = Field(
         description="Description of list item in less than 20 words.",
