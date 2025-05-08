@@ -5,7 +5,7 @@ from ppt_generator.models.query_and_prompt_models import (
     IconFrameEnum,
     IconQueryCollectionWithData,
     ImageAspectRatio,
-    ImagePromptWithAspectRatio,
+    ImagePromptWithThemeAndAspectRatio,
 )
 from ppt_generator.models.slide_model import SlideModel
 
@@ -47,67 +47,42 @@ class SlideModelUtils:
         self.type = model.type
         self.content = model.content
 
-    def get_image_prompts(self) -> List[ImagePromptWithAspectRatio]:
+    def get_image_prompts(self) -> List[ImagePromptWithThemeAndAspectRatio]:
         theme_prompt = THEME_PROMPTS.get(self.theme["name"], "") if self.theme else ""
         if self.type in SLIDE_WITHOUT_IMAGE:
             return []
 
-        if self.type is SlideType.type1:
-            return [
-                ImagePromptWithAspectRatio(
-                    image_prompt=each,
-                    aspect_ratio=ImageAspectRatio.r_1_1,
-                    theme_prompt=theme_prompt,
-                )
-                for each in self.content.image_prompts
-            ]
+        aspect_ratio = ImageAspectRatio.r_1_1
 
-        elif self.type is SlideType.type3:
-            return [
-                ImagePromptWithAspectRatio(
-                    image_prompt=each,
-                    aspect_ratio=ImageAspectRatio.r_2_3,
-                    theme_prompt=theme_prompt,
-                )
-                for each in self.content.image_prompts
-            ]
+        if self.type is SlideType.type3:
+            aspect_ratio = ImageAspectRatio.r_2_3
 
         elif self.type is SlideType.type4:
             count = len(self.content.body)
             aspect_ratio = (
                 ImageAspectRatio.r_5_4 if count == 3 else ImageAspectRatio.r_21_9
             )
-            return [
-                ImagePromptWithAspectRatio(
-                    image_prompt=each,
-                    aspect_ratio=aspect_ratio,
-                    theme_prompt=theme_prompt,
-                )
-                for each in self.content.image_prompts
-            ]
+
+        return [
+            ImagePromptWithThemeAndAspectRatio(
+                image_prompt=each,
+                aspect_ratio=aspect_ratio,
+                theme_prompt=theme_prompt,
+            )
+            for each in self.content.image_prompts
+        ]
 
     def get_icon_queries(self) -> List[IconQueryCollectionWithData]:
         if self.type in SLIDE_WITHOUT_ICON:
             return []
 
-        frame = None
         category = IconCategoryEnum.solid
-        if self.type == SlideType.type8:
-            if len(self.content.body) == 3:
-                category = IconCategoryEnum.outline
-                frame = IconFrameEnum.filled_rounded_rectangle
-            else:
-                frame = IconFrameEnum.filled_circle
 
-        elif self.type == SlideType.type7:
-            if len(self.content.body) == 3:
-                category = IconCategoryEnum.outline
-            else:
-                frame = IconFrameEnum.filled_circle
+        if len(self.content.body) == 3:
+            category = IconCategoryEnum.outline
 
         return [
             IconQueryCollectionWithData(
-                frame=frame,
                 category=category,
                 index=index,
                 theme=self.theme,

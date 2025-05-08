@@ -40,16 +40,11 @@ class GeneratePresentationRequirementsHandler:
 
         summary = await generate_document_summary(documents_loader.documents)
 
-        # presentation_questions_content = await generate_answers_and_content(
-        #     self.prompt, self.n_slides, summary, image_links, self.language, graphs
-        # )
-
-        #! TODO: Generate n_slides and language from input
         presentation = PresentationSqlModel(
             id=self.presentation_id,
             prompt=self.prompt,
-            n_slides=4,
-            language="English",
+            n_slides=self.n_slides,
+            language=self.language,
             summary=summary,
         )
 

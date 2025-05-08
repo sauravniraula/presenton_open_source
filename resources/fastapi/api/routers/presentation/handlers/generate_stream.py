@@ -19,14 +19,10 @@ from api.services.logging import LoggingService
 from api.sql_models import KeyValueSqlModel, PresentationSqlModel, SlideSqlModel
 from api.utils import get_presentation_dir
 from image_processor.generator import generate_image, get_icon
-from ppt_generator.models.llm_models import LLMPresentationModel
+from ppt_generator.generator import generate_presentation_stream
 from ppt_generator.models.slide_model import SlideModel
 from ppt_generator.slide_model_utils import SlideModelUtils
 from api.services.instances import temp_file_service
-
-from api.routers.presentation.prompts import CREATE_PRESENTATION_PROMPT
-from google import genai
-from google.genai import types
 from api.services.database import sql_session
 
 
@@ -35,11 +31,8 @@ class PresentationGenerateStreamHandler:
     def __init__(self, presentation_id: str, session: str):
         self.session = session
         self.presentation_id = presentation_id
-        self.client = OpenAI()
-        self.gemini_client = genai.Client()
 
         self.temp_dir = temp_file_service.create_temp_dir(self.session)
-
         self.presentation_dir = get_presentation_dir(self.presentation_id)
 
     def __del__(self):
@@ -86,25 +79,32 @@ class PresentationGenerateStreamHandler:
                 SlideSqlModel.presentation == self.presentation_id
             )
         )
-        sql_session.commit()
 
         yield SSEResponse(
             event="response", data=json.dumps({"status": "Analyzing information 📊"})
         ).to_string()
 
         presentation_text = ""
-        async for chunk, response in self.stream_chunks(
+        async for chunk in generate_presentation_stream(
             self.titles,
             presentation.prompt or "create presentation",
             presentation.n_slides,
             presentation.language,
             presentation.summary,
         ):
-            presentation_text += chunk
-            yield response
-            await asyncio.sleep(0.01)
+            presentation_text += chunk.content
+            yield SSEResponse(
+                event="response",
+                data=json.dumps({"type": "chunk", "chunk": chunk.content}),
+            ).to_string()
 
+        print("-" * 40)
+        print(presentation_text)
+        print("-" * 40)
         presentation_json = json.loads(presentation_text)
+
+        print(presentation_json)
+        print("-" * 40)
 
         slide_models: List[SlideModel] = []
         for i, content in enumerate(presentation_json["slides"]):
@@ -175,32 +175,6 @@ class PresentationGenerateStreamHandler:
             event="response",
             data=json.dumps({"type": "closing", "content": "Final Warning"}),
         ).to_string()
-
-    async def stream_chunks(
-        self,
-        titles: List[str],
-        prompt: str,
-        n_slides: int,
-        language: str,
-        summary: str,
-    ):
-        schema = LLMPresentationModel.model_json_schema()
-
-        system_prompt = f"{CREATE_PRESENTATION_PROMPT} -|0|--|0|- Follow this schema while giving out response: {schema}. Make description short and obey the character limits. Output should be in JSON format. Give out only JSON, nothing else."
-        system_prompt = system_prompt.replace("-|0|-", "\n")
-
-        user_message = f"Prompt: {prompt}-|0|--|0|- Number of Slides: {n_slides}-|0|--|0|- Presentation Language: {language} -|0|--|0|- Slide Titles: {titles} -|0|--|0|- Reference Document: {summary}"
-        user_message = user_message.replace("-|0|-", "\n")
-
-        for chunk in self.gemini_client.models.generate_content_stream(
-            model="gemini-2.0-flash",
-            contents=user_message,
-            config=types.GenerateContentConfig(system_instruction=system_prompt),
-        ):
-            text = chunk.text.replace("`", "").replace("json", "")
-            yield text, SSEResponse(
-                event="response", data=json.dumps({"type": "chunk", "chunk": text})
-            ).to_string()
 
     async def fetch_slide_assets(self, slide_models: List[SlideModel]):
         image_prompts = []

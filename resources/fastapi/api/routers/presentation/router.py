@@ -27,8 +27,8 @@ from api.routers.presentation.handlers.generate_research_report import (
 from api.routers.presentation.handlers.generate_stream import (
     PresentationGenerateStreamHandler,
 )
-from api.routers.presentation.handlers.generate_title_summary import (
-    PresentationTitleSummaryGenerateHandler,
+from api.routers.presentation.handlers.generate_titles import (
+    PresentationTitlesGenerateHandler,
 )
 from api.routers.presentation.handlers.get_presentation import GetPresentationHandler
 from api.routers.presentation.handlers.get_presentations import GetPresentationsHandler
@@ -74,7 +74,9 @@ from ppt_generator.models.slide_model import SlideModel
 presentation_router = APIRouter(prefix="/ppt")
 
 
-@presentation_router.get("/user_presentations", response_model=List[PresentationSqlModel])
+@presentation_router.get(
+    "/user_presentations", response_model=List[PresentationSqlModel]
+)
 async def get_user_presentations():
     request_utils = RequestUtils("/ppt/user_presentations")
     logging_service, log_metadata = await request_utils.initialize_logger()
@@ -165,7 +167,7 @@ async def generate_titles(data: GenerateTitleRequest):
         presentation_id=data.presentation_id,
     )
     return await handle_errors(
-        PresentationTitleSummaryGenerateHandler(data).post,
+        PresentationTitlesGenerateHandler(data).post,
         logging_service,
         log_metadata,
     )

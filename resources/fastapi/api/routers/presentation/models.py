@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from ppt_generator.models.pptx_models import PptxPresentationModel
 from ppt_generator.models.query_and_prompt_models import (
     IconCategoryEnum,
-    ImagePromptWithAspectRatio,
+    ImagePromptWithThemeAndAspectRatio,
 )
 from ppt_generator.models.slide_model import SlideModel
 from api.sql_models import PresentationSqlModel, SlideSqlModel
@@ -26,8 +26,8 @@ class DecomposeDocumentsRequest(DocumentsAndImagesPath):
 
 class GeneratePresentationRequirementsRequest(BaseModel):
     prompt: Optional[str] = None
-    n_slides: Optional[int] = None
-    language: Optional[str] = None
+    n_slides: int
+    language: str
     documents: Optional[List[str]] = None
     research_reports: Optional[List[str]] = None
     images: Optional[List[str]] = None
@@ -47,7 +47,7 @@ class PresentationGenerateRequest(BaseModel):
 
 class GenerateImageRequest(BaseModel):
     presentation_id: str
-    prompt: ImagePromptWithAspectRatio
+    prompt: ImagePromptWithThemeAndAspectRatio
 
 
 class SearchImageRequest(BaseModel):

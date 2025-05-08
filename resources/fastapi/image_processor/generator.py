@@ -1,102 +1,76 @@
 import os
 from typing import List, Optional
-import aiohttp
-from fastapi import HTTPException
-import replicate
 
-from api.utils import download_file
 from ppt_generator.models.query_and_prompt_models import (
     IconCategoryEnum,
     IconQueryCollectionWithData,
-    ImagePromptWithAspectRatio,
+    ImagePromptWithThemeAndAspectRatio,
 )
-import json
 
 
-IMAGE_GEN_MODEL = "black-forest-labs/flux-schnell"
-IMAGE_GEN_OUTPUT_FORMAT = "jpg"
-IMAGE_GEN_NUM_OUTPUTS = 1
-
-
-async def generate_image(input: ImagePromptWithAspectRatio, output_path: str) -> str:
-    print(f"Request - Generating Image for {input.image_prompt}")
+async def generate_image(
+    input: ImagePromptWithThemeAndAspectRatio, output_path: str
+) -> str:
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    replicate_client = replicate.Client(timeout=50)
-    try:
-        output = await replicate_client.async_run(
-            IMAGE_GEN_MODEL,
-            input={
-                "prompt": f"{input.image_prompt}, {input.theme_prompt}",
-                "aspect_ratio": input.aspect_ratio.value,
-                "output_format": IMAGE_GEN_OUTPUT_FORMAT,
-                "num_outputs": IMAGE_GEN_NUM_OUTPUTS,
-            },
-        )
-        print(f"Resposne - Generated Image for {input.image_prompt}")
-        file_bytes = output[0].read()
-        with open(output_path, "wb") as f:
-            f.write(file_bytes)
-    except Exception as e:
-        print("******** Error while generate image")
-        with open("assets/images/placeholder.jpg", "rb") as f_a:
-            with open(output_path, "wb") as f_b:
-                f_b.write(f_a.read())
+
+    print(f"Request - Generating Image for {input.image_prompt}")
+
+    with open("assets/images/placeholder.jpg", "rb") as f_a:
+        with open(output_path, "wb") as f_b:
+            f_b.write(f_a.read())
 
 
 async def get_images(query: str, page: int, limit: int) -> List[str]:
     search_url = f"https://api.pexels.com/v1/search"
 
-    headers = {"Authorization": os.getenv("PEXELS_API_KEY")}
-    async with aiohttp.ClientSession() as client:
-        response = await client.get(
-            search_url,
-            headers=headers,
-            params={"query": query, "page": page, "per_page": limit},
-        )
-        if response.status != 200:
-            raise HTTPException(400, "Error occured while searching images")
+    # headers = {"Authorization": os.getenv("PEXELS_API_KEY")}
+    # async with aiohttp.ClientSession() as client:
+    #     response = await client.get(
+    #         search_url,
+    #         headers=headers,
+    #         params={"query": query, "page": page, "per_page": limit},
+    #     )
+    #     if response.status != 200:
+    #         raise HTTPException(400, "Error occured while searching images")
 
-        response = await response.json()
-        photos = response.get("photos")
-        if photos:
-            return list(map(lambda x: x["src"]["large"], response["photos"]))
+    #     response = await response.json()
+    #     photos = response.get("photos")
+    #     if photos:
+    #         return list(map(lambda x: x["src"]["large"], response["photos"]))
 
-        return []
+    return []
 
 
 async def get_serp_images(query: str, page: int, limit: int) -> List[str]:
     search_url = "https://api.search.brave.com/res/v1/images/search"
-    headers = {"X-Subscription-Token": os.getenv("BRAVE_SEARCH_API_KEY")}
-    print(headers)
-    async with aiohttp.ClientSession() as client:
-        response = await client.get(
-            search_url,
-            headers=headers,
-            params={
-                "q": query,
-                "count": limit,
-                "search_lang": "en",
-                "country": "us",
-                "spellcheck": 1,
-            },
-        )
-        print(response)
-        print(response.text)
-        if response.status != 200:
-            raise HTTPException(400, "Error occured while searching images")
+    # headers = {"X-Subscription-Token": os.getenv("BRAVE_SEARCH_API_KEY")}
+    # print(headers)
+    # async with aiohttp.ClientSession() as client:
+    #     response = await client.get(
+    #         search_url,
+    #         headers=headers,
+    #         params={
+    #             "q": query,
+    #             "count": limit,
+    #             "search_lang": "en",
+    #             "country": "us",
+    #             "spellcheck": 1,
+    #         },
+    #     )
+    #     print(response)
+    #     print(response.text)
+    #     if response.status != 200:
+    #         raise HTTPException(400, "Error occured while searching images")
 
-        response = await response.json()
-        results = response.get("results")
-        if results:
-            return list(map(lambda x: x["thumbnail"]["src"], results))
+    #     response = await response.json()
+    #     results = response.get("results")
+    #     if results:
+    #         return list(map(lambda x: x["thumbnail"]["src"], results))
 
-        return []
+    return []
 
 
 async def get_icon(input: IconQueryCollectionWithData, output_path: str) -> str:
-    icon_url = None
-    query = input.icon_query.queries[0]
-    print(f"Request - Fetching Icon for {input.icon_query}")
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     # results = redis.get(query)
     # if results:
@@ -123,14 +97,9 @@ async def get_icon(input: IconQueryCollectionWithData, output_path: str) -> str:
     # icon_url = (
     #     f"https://presenton-icons.s3.ap-south-1.amazonaws.com/bold/{icon}-bold.png"
     # )
-    icon_url = ""
-    print(f"Response - Fetched Icon for {icon_url}")
-
-    success = await download_file(icon_url, output_path, {})
-    if not success:
-        with open(output_path, "wb") as f_a:
-            with open("assets/icons/placeholder.png", "rb") as f_b:
-                f_a.write(f_b.read())
+    with open(output_path, "wb") as f_a:
+        with open("assets/icons/placeholder.png", "rb") as f_b:
+            f_a.write(f_b.read())
 
 
 async def get_icons(

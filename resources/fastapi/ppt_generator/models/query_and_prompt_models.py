@@ -18,7 +18,7 @@ class ImageAspectRatio(Enum):
     r_9_21 = "9:21"
 
 
-class ImagePromptWithAspectRatio(BaseModel):
+class ImagePromptWithThemeAndAspectRatio(BaseModel):
     theme_prompt: str
     image_prompt: str
     aspect_ratio: ImageAspectRatio
@@ -36,7 +36,6 @@ class IconCategoryEnum(Enum):
 
 
 class IconQueryCollectionWithData(BaseModel):
-    frame: Optional[IconFrameEnum] = None
     category: IconCategoryEnum = IconCategoryEnum.solid
     index: int
     theme: Optional[dict] = None

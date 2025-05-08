@@ -1,18 +1,11 @@
+import os
 from typing import Optional
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai import ChatOpenAI
 
 from ppt_config_generator.models import PresentationTitlesModel
 from ppt_generator.fix_validation_errors import get_validated_response
-
-
-# model = ChatGoogleGenerativeAI(model="gemini-2.5-flash-preview-04-17").with_structured_output(
-#     PresentationTitlesModel.model_json_schema()
-# )
-
-model = ChatOpenAI(model="gpt-4.1-mini").with_structured_output(
-    PresentationTitlesModel.model_json_schema()
-)
 
 user_prompt_text = {
     "type": "text",
@@ -72,6 +65,11 @@ async def generate_ppt_titles(
     content: Optional[str],
     language: Optional[str] = None,
 ) -> PresentationTitlesModel:
+    model = (
+        ChatOpenAI(model="gpt-4.1-mini")
+        if os.getenv("LLM") == "openai"
+        else ChatGoogleGenerativeAI(model="gemini-2.0-flash")
+    ).with_structured_output(PresentationTitlesModel.model_json_schema())
 
     chain = get_prompt_template() | model
 

@@ -38,20 +38,24 @@ def save_uploaded_files(
 
 
 async def download_file(url: str, save_path: str, headers: Optional[dict] = None):
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url, headers=headers) as response:
-            if response.status == 200:
-                with open(save_path, "wb") as file:
-                    while True:
-                        chunk = await response.content.read(1024)
-                        if not chunk:
-                            break
-                        file.write(chunk)
-                print(f"File downloaded successfully to {save_path}")
-                return True
-            else:
-                print(f"Failed to download file. HTTP status: {response.status}")
-                return False
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, headers=headers) as response:
+                if response.status == 200:
+                    with open(save_path, "wb") as file:
+                        while True:
+                            chunk = await response.content.read(1024)
+                            if not chunk:
+                                break
+                            file.write(chunk)
+                    print(f"File downloaded successfully to {save_path}")
+                    return True
+                else:
+                    print(f"Failed to download file. HTTP status: {response.status}")
+                    return False
+    except Exception as e:
+        print(f"Error while downloading file from {url} to {save_path}")
+        return False
 
 
 async def download_files(urls: List[str], save_paths: List[str]):

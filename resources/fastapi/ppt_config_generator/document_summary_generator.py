@@ -1,16 +1,20 @@
 import asyncio
+import os
 from typing import List
 from langchain_core.documents import Document
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_openai import ChatOpenAI
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.messages import BaseMessage
 from langchain_text_splitters import CharacterTextSplitter
-from groq import AsyncGroq
 
-groq_client = AsyncGroq()
 
 text_splitter = CharacterTextSplitter.from_tiktoken_encoder(
     encoding_name="cl100k_base", chunk_size=200000, chunk_overlap=0
 )
 
-sysmte_prompt = """Generate a blog-style summary of the provided document in **more than 2000 words**, focusing on **prominently featuring any numerical data and statistics**. Maintain as much information as possible.
+sysmte_prompt = """
+Generate a blog-style summary of the provided document in **more than 2000 words**, focusing on **prominently featuring any numerical data and statistics**. Maintain as much information as possible.
 
 ### Output Format
 
@@ -27,32 +31,31 @@ sysmte_prompt = """Generate a blog-style summary of the provided document in **m
 - If **slides structure is mentioned** in document, structure the summary in the same way.
 """
 
+prompt_template = ChatPromptTemplate.from_messages(
+    [
+        ("system", sysmte_prompt),
+        ("user", "{text}"),
+    ]
+)
+
 
 async def generate_document_summary(documents: List[Document]):
-    # coroutines = []
-    # for document in documents:
-    #     text = document.page_content
-    #     truncated_text = text_splitter.split_text(text)[0]
-    #     coroutine = groq_client.chat.completions.create(
-    #         model="llama-3.1-8b-instant",
-    #         messages=[
-    #             {
-    #                 "role": "system",
-    #                 "content": sysmte_prompt,
-    #             },
-    #             {"role": "user", "content": truncated_text},
-    #         ],
-    #         temperature=1,
-    #         max_completion_tokens=8000,
-    #         top_p=1,
-    #         stream=False,
-    #         stop=None,
-    #     )
-    #     coroutines.append(coroutine)
+    model = (
+        ChatOpenAI(model="gpt-4.1-nano", max_completion_tokens=8000)
+        if os.getenv("LLM") == "openai"
+        else ChatGoogleGenerativeAI(
+            model="gemini-2.0-flash", max_completion_tokens=8000
+        )
+    )
+    chain = prompt_template | model
 
-    # completions = await asyncio.gather(*coroutines)
-    # combined = "\n\n".join(
-    #     [completion.choices[0].message.content for completion in completions]
-    # )
-    # return combined
-    return "Summary of documents"
+    coroutines = []
+    for document in documents:
+        text = document.page_content
+        truncated_text = text_splitter.split_text(text)[0]
+        coroutine = chain.ainvoke({"text": truncated_text})
+        coroutines.append(coroutine)
+
+    completions: List[BaseMessage] = await asyncio.gather(*coroutines)
+    combined = "\n\n".join([completion.content for completion in completions])
+    return combined
