@@ -1,10 +1,9 @@
+import os
 from fastapi import HTTPException
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, ValidationError
-
-
-model = ChatOpenAI(model="o3-mini", reasoning_effort= "high")
 
 
 def get_prompt_template():
@@ -39,6 +38,12 @@ def get_prompt_template():
 
 
 async def fix_validation_errors(response_model: BaseModel, response, errors):
+    model = (
+        ChatOpenAI(model="o3-mini", reasoning_effort="high")
+        if os.getenv("LLM") == "openai"
+        else ChatGoogleGenerativeAI(model="gemini-2.5-flash-preview-04-17")
+    )
+
     chain = get_prompt_template() | model.with_structured_output(
         response_model.model_json_schema()
     )
@@ -56,7 +61,7 @@ async def get_validated_response(
         try:
             if response and type(response) is list:
                 response = response[0]["args"]
-            
+
             print(response)
 
             validated_response = response_model(**response)

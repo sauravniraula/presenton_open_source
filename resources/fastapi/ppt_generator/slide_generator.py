@@ -1,4 +1,6 @@
 from typing import Optional
+import os
+from langchain_google_genai import ChatGoogleGenerativeAI
 from ppt_generator.fix_validation_errors import get_validated_response
 from ppt_generator.models.content_type_models import (
     CONTENT_TYPE_MAPPING,
@@ -10,7 +12,11 @@ from langchain_core.prompts import ChatPromptTemplate
 from ppt_generator.models.other_models import SlideType, SlideTypeModel
 from ppt_generator.models.slide_model import SlideModel
 
-model = ChatOpenAI(model="gpt-4o")
+model = (
+    ChatOpenAI(model="gpt-4o")
+    if os.getenv("LLM") == "openai"
+    else ChatGoogleGenerativeAI(model="gemini-2.0-flash")
+)
 
 
 prompt_template_from_slide = ChatPromptTemplate.from_messages(
