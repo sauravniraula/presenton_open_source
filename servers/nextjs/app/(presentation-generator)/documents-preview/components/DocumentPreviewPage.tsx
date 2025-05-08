@@ -15,7 +15,7 @@
 "use client";
 
 import styles from "../styles/main.module.css";
-import { useEffect, useState, useRef, useCallback, useMemo } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { OverlayLoader } from "@/components/ui/overlay-loader";
 import { PresentationGenerationApi } from "../../services/api/presentation-generation";
@@ -44,21 +44,6 @@ interface TextContents {
   [key: string]: string;
 }
 
-interface DocumentData {
-  [key: string]: [string, string]; // [path, url]
-}
-
-interface ImageData {
-  [key: string]: string;
-}
-
-interface ChartData {
-  [key: string]: Array<{ markdown?: string }>;
-}
-
-interface TableData {
-  [key: string]: Array<{ markdown?: string }>;
-}
 
 const DocumentsPreviewPage: React.FC = () => {
   // Hooks
@@ -88,13 +73,10 @@ const DocumentsPreviewPage: React.FC = () => {
   const reportKeys = useMemo(() => Object.keys(reports), [reports]);
   const documentKeys = useMemo(() => Object.keys(documents), [documents]);
   const imageKeys = useMemo(() => Object.keys(images), [images]);
-  const allSources = useMemo(
-    () => [...reportKeys, ...documentKeys, ...imageKeys],
-    [reportKeys, documentKeys, imageKeys]
-  );
+  const allSources = useMemo(() => [...reportKeys, ...documentKeys, ...imageKeys], [reportKeys, documentKeys, imageKeys]);
 
   // Callbacks
-  const updateText = useCallback((value: string) => {
+  const updateText = (value: string) => {
     if (selectedDocument) {
       setTextContents(prev => ({
         ...prev,
@@ -104,16 +86,17 @@ const DocumentsPreviewPage: React.FC = () => {
         prev.includes(selectedDocument) ? prev : [...prev, selectedDocument]
       );
     }
-  }, [selectedDocument]);
+  };
 
-  const updateSelectedDocument = useCallback((value: string) => {
+  const updateSelectedDocument = (value: string) => {
     setSelectedDocument(value);
     if (textareaRef.current) {
       textareaRef.current.value = textContents[value] || '';
     }
-  }, [textContents]);
+  };
 
-  const maintainDocumentTexts = useCallback(async () => {
+  const maintainDocumentTexts = async () => {
+    console.log('maintainDocumentTexts');
     const newDocuments: string[] = [];
     const promises: Promise<string>[] = [];
 
@@ -121,7 +104,7 @@ const DocumentsPreviewPage: React.FC = () => {
     documentKeys.forEach(key => {
       if (!(key in textContents)) {
         newDocuments.push(key);
-        promises.push(fetchTextFromURL(documents[key][1]));
+        promises.push(fetchTextFromURL(documents[key]));
       }
     });
 
@@ -145,9 +128,9 @@ const DocumentsPreviewPage: React.FC = () => {
       });
       setDownloadingDocuments([]);
     }
-  }, [documentKeys, reportKeys, textContents, documents, reports]);
+  };
 
-  const sendUploadDocumentRequest = useCallback(async (
+  const sendUploadDocumentRequest = async (
     path: string,
     isPrivate: boolean,
     file: File
@@ -163,9 +146,8 @@ const DocumentsPreviewPage: React.FC = () => {
       console.error("Error uploading document:", error);
       throw error;
     }
-  }, []);
-
-  const saveDocuments = useCallback(async () => {
+  };
+  const saveDocuments = async () => {
     const promises = changedDocuments.map(each => {
       const blob = new Blob([textContents[each]], { type: "text/plain" });
       const file = new File([blob], "document.txt", { type: "text/plain" });
@@ -180,17 +162,17 @@ const DocumentsPreviewPage: React.FC = () => {
     if (promises.length > 0) {
       await Promise.all(promises);
     }
-  }, [changedDocuments, textContents, reportKeys, documents, sendUploadDocumentRequest]);
+  };
 
-  const documentTablesAndCharts = useCallback(() => {
+  const documentTablesAndCharts = () => {
     if (!selectedDocument) return [];
 
     const tablesList = tables[selectedDocument] || [];
     const chartsList = charts[selectedDocument] || [];
     return [...tablesList, ...chartsList];
-  }, [selectedDocument, tables, charts]);
+  };
 
-  const handleCreatePresentation = useCallback(async () => {
+  const handleCreatePresentation = async () => {
     try {
       setShowLoading({
         message: "Generating presentation outline...",
@@ -256,7 +238,7 @@ const DocumentsPreviewPage: React.FC = () => {
         progress: false,
       });
     }
-  }, [config, documentKeys, documents, imageKeys, reportKeys, allSources, dispatch, router]);
+  };
 
   // Effects
   useEffect(() => {
@@ -264,7 +246,7 @@ const DocumentsPreviewPage: React.FC = () => {
       setSelectedDocument(allSources[0]);
       maintainDocumentTexts();
     }
-  }, [allSources, maintainDocumentTexts]);
+  }, [allSources]);
 
   // Render helpers
   const renderDocumentContent = () => {
